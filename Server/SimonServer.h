@@ -1,5 +1,7 @@
 #include "Socket.h"
 #include <vector>
+#include <memory>
+typedef std::vector<std::unique_ptr<Socket>> clientVector;
 
 class SimonServer
 {
@@ -10,20 +12,30 @@ public:
 	};
 
 	/**
-     *  Thread principal del servidor recive mensajes en el socket y
-     *  lo distribuye a los clientes. Mantiene actualizada la lista de clientes
+     *  Thread principal del servidor, recibe a los clientes y los distribuye en salas.
      */
-	void do_messages();
+	void hub();
+
+	/**
+	 * Thread que gestiona una sala del juego 
+	 */
+	void gameRoom();
 
 private:
 	/**
-     *  Lista de clientes conectados al servidor de Chat, representados por
-     *  su socket
+     *  Lista de salas del servidor de Simon, cada una representada por un vector de clientes (sockets)
      */
-	std::vector<std::unique_ptr<Socket>> clients;
+	std::vector<clientVector> rooms;
+
+	/**
+     *  Identifica las salas que admiten nuevos jugadores
+     */
+	std::vector<int> openRooms;
 
 	/**
      * Socket del servidor
      */
 	Socket socket;
+
+	static const size_t MAX_ROOM = 99; //Simon 99
 };
