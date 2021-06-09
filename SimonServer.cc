@@ -18,7 +18,7 @@ void SimonServer::hub()
 		// - LOGOUT: Eliminar del vector clients
 		// - MESSAGE: Reenviar el mensaje a todos los clientes (menos el emisor)
 
-		Socket *client;
+		Socket *client = &socket;
 		SimonMessage msg;
 		socket.recv(msg, client);
 
@@ -31,12 +31,13 @@ void SimonServer::hub()
 			if(room == "create"){
 				std::thread newRoom([this]()
 						   { (*this).gameRoom(); });
+				newRoom.detach();
 				std::thread::id roomId = newRoom.get_id();
 				rooms[roomId] = clientVector();
 				rooms[roomId].push_back(std::move(clientPtr));
 				openRooms.push_back(roomId);
 				roomDB[roomCount] = roomId;
-				SimonMessage reply("server", "Has creado la sala número " + roomCount);
+				SimonMessage reply("server", "Has creado la sala número " + std::to_string(roomCount));
 				roomCount++;
 				reply.type = SimonMessage::LOGIN;
 				socket.send(reply, *client);
@@ -45,7 +46,8 @@ void SimonServer::hub()
 			else if(roomNumber >= 0){
 				//Si la sala existe...
 				if(roomDB.count(roomNumber)){
-					auto i = std::find(openRooms.begin(), openRooms.end(), roomNumber);
+					auto roomId = roomDB[roomNumber];
+					auto i = std::find(openRooms.begin(), openRooms.end(), roomId);
 					//Si la sala admite jugadores...
 					if(i!= openRooms.end()){
 						rooms[roomDB[roomNumber]].push_back(std::move(clientPtr));
@@ -72,7 +74,8 @@ void SimonServer::hub()
 			else {
 				if(openRooms.size() == 0){
 					std::thread newRoom([this]()
-						   { (*this).gameRoom(); });
+										{ (*this).gameRoom(); });
+					newRoom.detach();
 					std::thread::id roomId = newRoom.get_id();
 					rooms[roomId] = clientVector();
 					openRooms.push_back(roomId);
@@ -82,7 +85,7 @@ void SimonServer::hub()
 				int r = rand()%openRooms.size();
 				auto roomId = roomDB[r];
 				rooms[roomId].push_back(std::move(clientPtr));
-				SimonMessage reply("server", "Te has unido a la sala " + r);
+				SimonMessage reply("server", "Te has unido a la sala " + std::to_string(r));
 				reply.type = SimonMessage::LOGIN;
 				socket.send(reply, *client);
 			}

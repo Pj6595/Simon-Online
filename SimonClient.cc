@@ -8,6 +8,7 @@ void SimonClient::login()
 
 	SimonMessage em(nick, msg);
 	em.type = SimonMessage::LOGIN;
+	em.sequence = "create";
 
 	socket.send(em, socket);
 }
@@ -62,7 +63,7 @@ void SimonClient::net_thread()
 		if (msg.type == SimonMessage::LOGOUT)
 			std::cout << msg.nick << " se ha ido del chat.\n";
 		else if (msg.type == SimonMessage::LOGIN)
-			std::cout << msg.nick << " se ha unido al chat.\n";
+			std::cout << msg.sequence << "\n";
 		else
 			//Mostrar en pantalla el mensaje de la forma "nick: mensaje"
 			std::cout << msg.nick << ": " << msg.sequence << '\n';
