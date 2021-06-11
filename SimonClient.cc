@@ -1,6 +1,43 @@
 #include "SimonClient.h"
 #include "SimonMessage.h"
 #include <thread>
+#include <iostream>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <unistd.h>
+
+SimonClient::SimonClient(const char *s, const char *p, const char *n) : nick(n){
+	struct addrinfo *result;
+	struct addrinfo hints;
+
+	memset((void *)&hints, 0, sizeof(struct addrinfo));
+
+	hints.ai_flags = AI_PASSIVE; //Devolver 0.0.0.0
+	hints.ai_family = AF_INET;	 // IPv4
+	hints.ai_socktype = SOCK_STREAM;
+
+	int rc = getaddrinfo(s, p, &hints, &result);
+	if (rc != 0)
+	{
+		std::cout << gai_strerror(rc) << std::endl;
+	}
+
+	sd = socket(result->ai_family, result->ai_socktype, 0);
+	if (sd < 0)
+	{
+		std::cout << gai_strerror(sd) << std::endl;
+	}
+
+	//Abrimos el socket
+	bind(sd, result->ai_addr, result->ai_addrlen);
+
+	//Tomamos la dirección del socket
+	sockaddr servDir = *result->ai_addr;
+	socklen_t servDirLen = sizeof(servDir);
+	connect(sd, &servDir, servDirLen);
+}
 
 void SimonClient::login()
 {
@@ -9,8 +46,9 @@ void SimonClient::login()
 	SimonMessage em(nick, msg);
 	em.type = SimonMessage::LOGIN;
 	em.sequence = "create";
+	em.to_bin();
 
-	socket.send(em, socket);
+	send(sd, em.data(), em.size(), 0);
 }
 
 void SimonClient::logout()
@@ -19,8 +57,9 @@ void SimonClient::logout()
 
 	SimonMessage logoutMsg(nick, msg);
 	logoutMsg.type = SimonMessage::LOGOUT;
+	logoutMsg.to_bin();
 
-	socket.send(logoutMsg, socket);
+	send(sd, logoutMsg.data(), logoutMsg.size(), 0);
 }
 
 void SimonClient::input_thread()
@@ -47,7 +86,8 @@ void SimonClient::input_thread()
 			message.type = SimonMessage::SEQUENCE;
 
 		// Enviar al servidor usando socket
-		socket.send(message, socket);
+		message.to_bin();
+		send(sd, message.data(), message.size(), 0);
 	}
 }
 
@@ -56,8 +96,11 @@ void SimonClient::net_thread()
 	while (true)
 	{
 		//Recibir Mensajes de red
+		char buffer[SimonMessage::MESSAGE_SIZE];
 		SimonMessage msg;
-		socket.recv(msg);
+		recv(sd, buffer, sizeof(buffer), 0);
+
+		msg.from_bin(buffer);
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
 		if (msg.type == SimonMessage::LOGOUT)

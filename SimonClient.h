@@ -1,4 +1,3 @@
-#include "Socket.h"
 #include <string>
 
 class SimonClient
@@ -9,8 +8,7 @@ public:
      * @param p puerto del servidor
      * @param n nick del usuario
      */
-	SimonClient(const char *s, const char *p, const char *n) : socket(s, p),
-															  nick(n){};
+	SimonClient(const char *s, const char *p, const char *n);
 
 	/**
      *  Envía el mensaje de login al servidor
@@ -35,12 +33,9 @@ public:
 	void net_thread();
 
 private:
-	/**
-     * Socket para comunicar con el servidor
-     */
-	Socket socket;
+     int sd;
 
-	/**
+     /**
      * Nick del usuario
      */
 	std::string nick;

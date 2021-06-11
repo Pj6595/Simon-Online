@@ -3,15 +3,12 @@
 #include <memory>
 #include <map>
 #include <thread>
-typedef std::vector<std::unique_ptr<Socket>> clientVector;
+typedef std::vector<int> clientVector;
 
 class SimonServer
 {
 public:
-	SimonServer(const char *s, const char *p) : socket(s, p)
-	{
-		socket.bind();
-	};
+	SimonServer(const char *s, const char *p);
 
 	/**
      *  Thread principal del servidor, recibe a los clientes y los distribuye en salas.
@@ -24,6 +21,7 @@ public:
 	void gameRoom();
 
 private:
+
 	int roomCount = 0;
 	std::map<int, std::thread::id> roomDB;
 	/**
@@ -37,10 +35,7 @@ private:
      */
 	std::vector<std::thread::id> openRooms;
 
-	/**
-     * Socket del servidor
-     */
-	Socket socket;
+	int sd;
 
 	static const size_t MAX_ROOM = 99; //Simon 99
 };
