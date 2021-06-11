@@ -1,6 +1,20 @@
 #include "SimonClient.h"
 #include "SimonMessage.h"
 #include <thread>
+#include <iostream>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <unistd.h>
+
+SimonClient::SimonClient(const char *s, const char *p, const char *n, const char* message) : nick(n), sock(s,p){
+	sock.bind();
+	sock.connect();
+	sd = sock.get_sd();
+	if(message == nullptr) action = -2;
+	else action = atoi(message);
+}
 
 void SimonClient::login()
 {
@@ -8,9 +22,18 @@ void SimonClient::login()
 
 	SimonMessage em(nick, msg);
 	em.type = SimonMessage::LOGIN;
-	em.sequence = "create";
-
-	socket.send(em, socket);
+	switch(action){
+		case -2:
+			em.sequence = "";
+			break;
+		case -1:
+			em.sequence = "create";
+			break;
+		default:
+			em.sequence = std::to_string(action);
+			break;
+	}
+	sock.send(sd, em);
 }
 
 void SimonClient::logout()
@@ -20,7 +43,7 @@ void SimonClient::logout()
 	SimonMessage logoutMsg(nick, msg);
 	logoutMsg.type = SimonMessage::LOGOUT;
 
-	socket.send(logoutMsg, socket);
+	sock.send(sd, logoutMsg);
 }
 
 void SimonClient::input_thread()
@@ -47,7 +70,7 @@ void SimonClient::input_thread()
 			message.type = SimonMessage::SEQUENCE;
 
 		// Enviar al servidor usando socket
-		socket.send(message, socket);
+		sock.send(sd, message);
 	}
 }
 
@@ -57,7 +80,7 @@ void SimonClient::net_thread()
 	{
 		//Recibir Mensajes de red
 		SimonMessage msg;
-		socket.recv(msg);
+		sock.recv(sd, msg);
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
 		if (msg.type == SimonMessage::LOGOUT)
@@ -72,7 +95,7 @@ void SimonClient::net_thread()
 
 int main(int argc, char **argv)
 {
-	SimonClient ec(argv[1], argv[2], argv[3]);
+	SimonClient ec(argv[1], argv[2], argv[3], argv[4]);
 
 	std::thread net_thread([&ec]()
 						   { ec.net_thread(); });

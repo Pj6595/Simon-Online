@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-g -I.
-DEPS = Socket.h SimonClient.h SimonServer.h SimonMessage.h
-OBJ = Socket.o SimonMessage.o
+DEPS = SimonClient.h SimonServer.h SimonMessage.h Socket.h
+OBJ = SimonMessage.o Socket.o
 LIBS=-lpthread
 
 %.o: %.cc $(DEPS)

@@ -5,49 +5,39 @@
 
 Socket::Socket(const char * address, const char * port):sd(-1)
 {
-    //Construir un socket de tipo AF_INET y SOCK_DGRAM usando getaddrinfo.
-    //Con el resultado inicializar los miembros sd, sa y sa_len de la clase
-	struct addrinfo *result;
+    struct addrinfo *result;
 	struct addrinfo hints;
 
 	memset((void *)&hints, 0, sizeof(struct addrinfo));
 
-	hints.ai_family = AF_INET;	 // IPv4
-	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_flags = AI_PASSIVE;	 //Devolver 0.0.0.0
+	hints.ai_family = AF_INET;		 // IPv4
+	hints.ai_socktype = SOCK_STREAM; //Para TCP
 
 	int rc = getaddrinfo(address, port, &hints, &result);
 	if (rc != 0)
 	{
 		std::cout << gai_strerror(rc) << std::endl;
 	}
-
 	sd = socket(result->ai_family, result->ai_socktype, 0);
 	if (sd < 0)
 	{
 		std::cout << gai_strerror(sd) << std::endl;
 	}
 
-	sa = *result->ai_addr;
-	sa_len = result->ai_addrlen;
+    sa = *result->ai_addr;
+    sa_len = result->ai_addrlen;
 }
 
-int Socket::recv(Serializable &obj, Socket * &sock)
+int Socket::recv(int cliente_sd, Serializable &obj)
 {
-    struct sockaddr sa;
-    socklen_t sa_len = sizeof(struct sockaddr);
-
     char buffer[MAX_MESSAGE_SIZE];
 
-    ssize_t bytes = ::recvfrom(sd, buffer, MAX_MESSAGE_SIZE, 0, &sa, &sa_len);
+    ssize_t bytes = ::recv(cliente_sd, buffer, MAX_MESSAGE_SIZE, 0);
 
     if ( bytes <= 0 )
     {
         return -1;
-    }
-
-    if ( sock != 0 )
-    {
-        sock = new Socket(&sa, sa_len);
     }
 
     obj.from_bin(buffer);
@@ -55,12 +45,13 @@ int Socket::recv(Serializable &obj, Socket * &sock)
     return 0;
 }
 
-int Socket::send(Serializable& obj, const Socket& sock)
+int Socket::send(int cliente_sd, Serializable& obj)
 {
     //Serializar el objeto
 	obj.to_bin();
 	//Enviar el objeto binario a sock usando el socket sd
-	ssize_t bytesSent = sendto(sd, obj.data(), obj.size(), 0, &sock.sa, sock.sa_len);
+	ssize_t bytesSent = ::send(cliente_sd, obj.data(), obj.size(), 0);
+
 	if(bytesSent >= 0) return 0;
 	return -1;
 }
@@ -89,4 +80,3 @@ std::ostream& operator<<(std::ostream& os, const Socket& s)
 
     return os;
 };
-

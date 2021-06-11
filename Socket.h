@@ -47,7 +47,7 @@ public:
      * descontar la cabecera UDP e IP (con las posibles opciones). Se debe
      * utilizar esta constante para definir buffers de recepción.
      */
-    static const int32_t MAX_MESSAGE_SIZE = 32768;
+    static const int32_t MAX_MESSAGE_SIZE = 65535;
 
     /**
      *  Construye el socket UDP con la dirección y puerto dados. Esta función
@@ -80,13 +80,18 @@ public:
      *
      *    @return 0 en caso de éxito o -1 si error (cerrar conexión)
      */
-    int recv(Serializable &obj, Socket * &sock);
+    int recv(int cliente_sd, Serializable &obj);
 
-    int recv(Serializable &obj) //Descarta los datos del otro extremo
-    {
-        Socket * s = 0;
+    int listen(int max){
+        return ::listen(sd, max);
+    }
 
-        return recv(obj, s);
+    int connect(){
+        return ::connect(sd, (const struct sockaddr *)&sa, sa_len);
+    }
+
+    int accept(struct sockaddr* cliente, socklen_t* cliente_len){
+        return ::accept(sd, cliente, cliente_len);
     }
 
     /**
@@ -98,7 +103,9 @@ public:
      *
      *    @return 0 en caso de éxito o -1 si error
      */
-    int send(Serializable& obj, const Socket& sock);
+    int send(int cliente_sd, Serializable& obj);
+
+    int get_sd() { return sd; }
 
     /**
      *  Enlaza el descriptor del socket a la dirección y puerto

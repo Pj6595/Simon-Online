@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "Serializable.h"
-#include "Socket.h"
 
 /**
  *  Mensaje del protocolo de la aplicación de Simon Online
