@@ -38,4 +38,6 @@ private:
 	int sd;
 
 	static const size_t MAX_ROOM = 99; //Simon 99
+
+	Socket sock;
 };

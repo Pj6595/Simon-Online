@@ -8,29 +8,9 @@
 #include <netdb.h>
 #include <unistd.h>
 
-SimonServer::SimonServer(const char *s, const char *p){
-	struct addrinfo *result;
-	struct addrinfo hints;
-
-	memset((void *)&hints, 0, sizeof(struct addrinfo));
-
-	hints.ai_flags = AI_PASSIVE;	 //Devolver 0.0.0.0
-	hints.ai_family = AF_INET;		 // IPv4
-	hints.ai_socktype = SOCK_STREAM; //Para TCP
-
-	int rc = getaddrinfo(s, p, &hints, &result);
-	if (rc != 0)
-	{
-		std::cout << gai_strerror(rc) << std::endl;
-	}
-	sd = socket(result->ai_family, result->ai_socktype, 0);
-	if (sd < 0)
-	{
-		std::cout << gai_strerror(sd) << std::endl;
-	}
-
-	bind(sd, (struct sockaddr *)result->ai_addr, result->ai_addrlen);
-	listen(sd, 100); //Comenzamos la escucha
+SimonServer::SimonServer(const char *s, const char *p): sock(s,p){
+	sock.bind();
+	sock.listen(100);
 }
 
 void SimonServer::hub()
@@ -38,22 +18,13 @@ void SimonServer::hub()
 	bool quit = false;
 	while (!quit)
 	{
-		char host[NI_MAXHOST];
-		char serv[NI_MAXSERV];
-
 		//Establecemos la conexión con el cliente
 		struct sockaddr cliente;
 		socklen_t cliente_len = sizeof(cliente);
-		int cliente_sd = accept(sd, (struct sockaddr *)&cliente, &cliente_len);
-
-		getnameinfo((struct sockaddr *)&cliente, cliente_len, host, NI_MAXHOST, serv, NI_MAXSERV, NI_NUMERICHOST | NI_NUMERICSERV);
-		printf("Conexión desde Host:%s Puerto:%s\n", host, serv);
-
-		char buffer[SimonMessage::MESSAGE_SIZE];
-		int bytesReceived = recv(cliente_sd, buffer, sizeof(buffer), 0);
+		int cliente_sd = sock.accept(&cliente, &cliente_len);
 
 		SimonMessage msg;
-		msg.from_bin(buffer);
+		sock.recv(cliente_sd, msg);
 
 		//Procesamos el mensaje
 		if (msg.type == SimonMessage::LOGIN)
@@ -74,8 +45,7 @@ void SimonServer::hub()
 				SimonMessage reply("server", "Has creado la sala número " + std::to_string(roomCount));
 				roomCount++;
 				reply.type = SimonMessage::LOGIN;
-				reply.to_bin();
-				send(cliente_sd, reply.data(), reply.size(), 0);
+				sock.send(cliente_sd, reply);
 			}
 			//El cliente quiere unirse a una sala
 			else if (roomNumber >= 0)
@@ -89,18 +59,16 @@ void SimonServer::hub()
 					if (i != openRooms.end())
 					{
 						rooms[roomDB[roomNumber]].push_back(cliente_sd);
-						SimonMessage reply("server", "Te has unido a la sala " + roomNumber);
+						SimonMessage reply("server", "Te has unido a la sala " + std::to_string(roomNumber));
 						reply.type = SimonMessage::LOGIN;
-						reply.to_bin();
-						send(cliente_sd, reply.data(), reply.size(), 0);
+						sock.send(cliente_sd, reply);
 					}
 					//Si la sala no admite jugadores...
 					else
 					{
 						SimonMessage reply("server", "La sala está cerrada");
 						reply.type = SimonMessage::LOGOUT;
-						reply.to_bin();
-						send(cliente_sd, reply.data(), reply.size(), 0);
+						sock.send(cliente_sd, reply);
 					}
 				}
 				//Si la sala no existe...
@@ -108,8 +76,7 @@ void SimonServer::hub()
 				{
 					SimonMessage reply("server", "La sala no existe");
 					reply.type = SimonMessage::LOGOUT;
-					reply.to_bin();
-					send(cliente_sd, reply.data(), reply.size(), 0);
+					sock.send(cliente_sd, reply);
 				}
 			}
 			//El cliente no ha especificado nada (entra a una sala aleatoria si hay abiertas y si no la crea)
@@ -131,8 +98,7 @@ void SimonServer::hub()
 				rooms[roomId].push_back(cliente_sd);
 				SimonMessage reply("server", "Te has unido a la sala " + std::to_string(r));
 				reply.type = SimonMessage::LOGIN;
-				reply.to_bin();
-				send(cliente_sd, reply.data(), reply.size(), 0);
+				sock.send(cliente_sd, reply);
 			}
 			std::cout << msg.nick << " se ha conectado.\n";
 		}

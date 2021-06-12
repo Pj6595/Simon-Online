@@ -8,35 +8,12 @@
 #include <netdb.h>
 #include <unistd.h>
 
-SimonClient::SimonClient(const char *s, const char *p, const char *n) : nick(n){
-	struct addrinfo *result;
-	struct addrinfo hints;
-
-	memset((void *)&hints, 0, sizeof(struct addrinfo));
-
-	hints.ai_flags = AI_PASSIVE; //Devolver 0.0.0.0
-	hints.ai_family = AF_INET;	 // IPv4
-	hints.ai_socktype = SOCK_STREAM;
-
-	int rc = getaddrinfo(s, p, &hints, &result);
-	if (rc != 0)
-	{
-		std::cout << gai_strerror(rc) << std::endl;
-	}
-
-	sd = socket(result->ai_family, result->ai_socktype, 0);
-	if (sd < 0)
-	{
-		std::cout << gai_strerror(sd) << std::endl;
-	}
-
-	//Abrimos el socket
-	bind(sd, result->ai_addr, result->ai_addrlen);
-
-	//Tomamos la dirección del socket
-	sockaddr servDir = *result->ai_addr;
-	socklen_t servDirLen = sizeof(servDir);
-	connect(sd, &servDir, servDirLen);
+SimonClient::SimonClient(const char *s, const char *p, const char *n, const char* message) : nick(n), sock(s,p){
+	sock.bind();
+	sock.connect();
+	sd = sock.get_sd();
+	if(message == nullptr) action = -2;
+	else action = atoi(message);
 }
 
 void SimonClient::login()
@@ -45,10 +22,18 @@ void SimonClient::login()
 
 	SimonMessage em(nick, msg);
 	em.type = SimonMessage::LOGIN;
-	em.sequence = "create";
-	em.to_bin();
-
-	send(sd, em.data(), em.size(), 0);
+	switch(action){
+		case -2:
+			em.sequence = "";
+			break;
+		case -1:
+			em.sequence = "create";
+			break;
+		default:
+			em.sequence = std::to_string(action);
+			break;
+	}
+	sock.send(sd, em);
 }
 
 void SimonClient::logout()
@@ -57,9 +42,8 @@ void SimonClient::logout()
 
 	SimonMessage logoutMsg(nick, msg);
 	logoutMsg.type = SimonMessage::LOGOUT;
-	logoutMsg.to_bin();
 
-	send(sd, logoutMsg.data(), logoutMsg.size(), 0);
+	sock.send(sd, logoutMsg);
 }
 
 void SimonClient::input_thread()
@@ -86,8 +70,7 @@ void SimonClient::input_thread()
 			message.type = SimonMessage::SEQUENCE;
 
 		// Enviar al servidor usando socket
-		message.to_bin();
-		send(sd, message.data(), message.size(), 0);
+		sock.send(sd, message);
 	}
 }
 
@@ -96,11 +79,8 @@ void SimonClient::net_thread()
 	while (true)
 	{
 		//Recibir Mensajes de red
-		char buffer[SimonMessage::MESSAGE_SIZE];
 		SimonMessage msg;
-		recv(sd, buffer, sizeof(buffer), 0);
-
-		msg.from_bin(buffer);
+		sock.recv(sd, msg);
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
 		if (msg.type == SimonMessage::LOGOUT)
@@ -115,7 +95,7 @@ void SimonClient::net_thread()
 
 int main(int argc, char **argv)
 {
-	SimonClient ec(argv[1], argv[2], argv[3]);
+	SimonClient ec(argv[1], argv[2], argv[3], argv[4]);
 
 	std::thread net_thread([&ec]()
 						   { ec.net_thread(); });
