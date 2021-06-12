@@ -38,6 +38,9 @@ private:
 	int sd;
 
 	static const size_t MAX_ROOM = 99; //Simon 99
+	static const size_t MAX_SEQUENCE = 99; //Simon 99
 
 	Socket sock;
+
+	int jajasi;
 };

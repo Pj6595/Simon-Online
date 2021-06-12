@@ -7,10 +7,13 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <time.h>
+
 
 SimonServer::SimonServer(const char *s, const char *p): sock(s,p){
 	sock.bind();
 	sock.listen(100);
+	srand(time(NULL));
 }
 
 void SimonServer::hub()
@@ -34,10 +37,11 @@ void SimonServer::hub()
 			//El cliente quiere crear una sala
 			if (room == "create")
 			{
+				jajasi = 0;
 				std::thread newRoom([this]()
 									{ (*this).gameRoom(); });
-				newRoom.detach();
 				std::thread::id roomId = newRoom.get_id();
+				newRoom.detach();
 				rooms[roomId] = clientVector();
 				rooms[roomId].push_back(cliente_sd);
 				openRooms.push_back(roomId);
@@ -86,8 +90,8 @@ void SimonServer::hub()
 				{
 					std::thread newRoom([this]()
 										{ (*this).gameRoom(); });
-					newRoom.detach();
 					std::thread::id roomId = newRoom.get_id();
+					newRoom.detach();
 					rooms[roomId] = clientVector();
 					openRooms.push_back(roomId);
 					roomDB[roomCount] = roomId;
@@ -107,6 +111,38 @@ void SimonServer::hub()
 
 void SimonServer::gameRoom(){
 	auto id = std::this_thread::get_id();
+
+	clientVector* room = &rooms[id];
+	int sequenceSize = 1;
+	int readyClients = 0;
+	std::map<int, bool> genteReady;
+
+	while(room->size() < 2 || readyClients < room->size()){
+		for (int cliente_sd : *&rooms[id]){
+			if (genteReady.count(cliente_sd) == 0)
+				genteReady[cliente_sd] = false;
+			else if(genteReady[cliente_sd]) continue;
+			SimonMessage msg;
+			sock.recv(cliente_sd, msg);
+			if(msg.type == SimonMessage::MessageType::READY){
+				genteReady[cliente_sd] = true;
+				readyClients++;
+				std::cout << "HAY " << readyClients << " READYS Y EL TAMAÑO DE LA SALA ES " << room->size() << '\n';
+			}
+		}
+	}
+
+	std::cout << "EVERYONE IS HERE\n";
+
+	while(room->size() > 1 && sequenceSize < MAX_SEQUENCE){
+		std::string sequence = "";
+		for (int i = 0; i < sequenceSize; i++)
+			sequence += std::to_string(rand() % 4);
+		SimonMessage msg("server", sequence);
+		msg.type = SimonMessage::MessageType::SEQUENCE;
+		for (int cliente_sd : rooms[id])
+			sock.send(cliente_sd, msg);
+	}
 }
 
 int main(int argc, char **argv)

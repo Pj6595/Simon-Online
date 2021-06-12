@@ -21,6 +21,8 @@ public:
      */
 	void logout();
 
+     void ready();
+
 	/**
      *  Rutina principal para el Thread de E/S. Lee datos de STDIN (std::getline)
      *  y los envía por red vía el Socket.

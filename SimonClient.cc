@@ -46,6 +46,15 @@ void SimonClient::logout()
 	sock.send(sd, logoutMsg);
 }
 
+void SimonClient::ready(){
+	std::string msg;
+
+	SimonMessage readyMsg(nick, msg);
+	readyMsg.type = SimonMessage::READY;
+
+	sock.send(sd, readyMsg);
+}
+
 void SimonClient::input_thread()
 {
 	while (true)
@@ -64,6 +73,11 @@ void SimonClient::input_thread()
 		else if (msg == "LOGIN")
 		{
 			login();
+			continue;
+		}
+		else if(msg == "READY"){
+			std::cout << "ESTOY READY\n";
+			ready();
 			continue;
 		}
 		else
@@ -87,6 +101,8 @@ void SimonClient::net_thread()
 			std::cout << msg.nick << " se ha ido del chat.\n";
 		else if (msg.type == SimonMessage::LOGIN)
 			std::cout << msg.sequence << "\n";
+		else if(msg.type == SimonMessage::SEQUENCE)
+			std::cout << "Tu secuencia es: " << msg.sequence << "\n";
 		else
 			//Mostrar en pantalla el mensaje de la forma "nick: mensaje"
 			std::cout << msg.nick << ": " << msg.sequence << '\n';
