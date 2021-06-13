@@ -14,6 +14,7 @@ SimonClient::SimonClient(const char *s, const char *p, const char *n, const char
 	sd = sock.get_sd();
 	if(message == nullptr) action = -2;
 	else action = atoi(message);
+	quit = false;
 }
 
 void SimonClient::login()
@@ -97,15 +98,22 @@ void SimonClient::net_thread()
 		sock.recv(sd, msg);
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
-		if (msg.type == SimonMessage::LOGOUT)
-			std::cout << msg.nick << " se ha ido del chat.\n";
-		else if (msg.type == SimonMessage::LOGIN)
-			std::cout << msg.sequence << "\n";
-		else if(msg.type == SimonMessage::SEQUENCE)
-			std::cout << "Tu secuencia es: " << msg.sequence << "\n";
-		else
-			//Mostrar en pantalla el mensaje de la forma "nick: mensaje"
-			std::cout << msg.nick << ": " << msg.sequence << '\n';
+		switch(msg.type){
+			case SimonMessage::LOGOUT:
+				if(msg.sequence == "WIN") std::cout << "A winner is you\n";
+				else std::cout << msg.sequence << "\n";
+				exit(0);
+				break;
+			case SimonMessage::LOGIN:
+				std::cout << msg.sequence << "\n";
+				break;
+			case SimonMessage::SEQUENCE:
+				std::cout << "Tu secuencia es: " << msg.sequence << "\n";
+				break;
+			case SimonMessage::READY:
+				std::cout << "Enhorabuena hacker!! Espera instrucciones.\n";
+				break;
+		}
 	}
 }
 
