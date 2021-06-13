@@ -97,26 +97,89 @@ void SimonClient::net_thread()
 		sock.recv(sd, msg);
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
-		if (msg.type == SimonMessage::LOGOUT)
-			std::cout << msg.nick << " se ha ido del chat.\n";
-		else if (msg.type == SimonMessage::LOGIN)
-			std::cout << msg.sequence << "\n";
-		else if(msg.type == SimonMessage::SEQUENCE)
-			std::cout << "Tu secuencia es: " << msg.sequence << "\n";
-		else
-			//Mostrar en pantalla el mensaje de la forma "nick: mensaje"
-			std::cout << msg.nick << ": " << msg.sequence << '\n';
+		switch(msg.type){
+			case SimonMessage::LOGOUT:
+				if(msg.sequence == "WIN") std::cout << "A winner is you\n";
+				else std::cout << msg.sequence << "\n";
+				exit(0);
+				break;
+			case SimonMessage::LOGIN:
+				std::cout << msg.sequence << "\n";
+				break;
+			case SimonMessage::SEQUENCE:
+				std::cout << "Tu secuencia es: " << msg.sequence << "\n";
+				break;
+			case SimonMessage::READY:
+				std::cout << "Enhorabuena hacker!! Espera instrucciones.\n";
+				break;
+		}
 	}
 }
 
 int main(int argc, char **argv)
 {
+	// variable declarations
+	SDL_Window *win = NULL;
+	SDL_Renderer *renderer = NULL;
+	SDL_Texture *img = NULL;
+	int w, h; // texture width & height
+
+	SDL_Init(SDL_INIT_EVERYTHING);
+	win = SDL_CreateWindow("StabilityIntensifies.exe", SDL_WINDOWPOS_CENTERED,
+							  SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+
+	// load our image
+	img = IMG_LoadTexture(renderer, "Tinky.png");
+	SDL_QueryTexture(img, NULL, NULL, &w, &h); // get the width and height of the texture
+	// put the location where we want the texture to be drawn into a rectangle
+	// I'm also scaling the texture 2x simply by setting the width and height
+	SDL_Rect texr;
+	texr.x = w / 2;
+	texr.y = h / 2;
+	texr.w = w * 2;
+	texr.h = h * 2;
+
+	// main loop
+	while (1)
+	{
+		// event handling
+		SDL_Event e;
+		while (SDL_PollEvent(&e))
+		{
+			// std::cout << "DETECTÉ EVENTO\n";
+			// if (e.type == SDL_QUIT)
+			// 	break;
+			// else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE)
+			// 	break;
+			// else if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_e)
+			// 	std::cout << "Albar bobo\n";
+			// else std::cout << e.type << std::endl;
+			std::cout << "EVENTOYEAS" << std::endl;
+		}
+
+		// clear the screen
+		SDL_RenderClear(renderer);
+		// copy the texture to the rendering context
+		SDL_RenderCopy(renderer, img, NULL, &texr);
+		// flip the backbuffer
+		// this means that everything that we prepared behind the screens is actually shown
+		SDL_RenderPresent(renderer);
+	}
+
+	SDL_DestroyTexture(img);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(win);
+
+	//Initialize networking things
 	SimonClient ec(argv[1], argv[2], argv[3], argv[4]);
 
 	std::thread net_thread([&ec]()
-						   { ec.net_thread(); });
+							{ ec.net_thread(); });
 
 	ec.login();
 
 	ec.input_thread();
+
+	return 0;
 }

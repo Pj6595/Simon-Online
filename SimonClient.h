@@ -1,5 +1,7 @@
 #include <string>
 #include "Socket.h"
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 class SimonClient
 {
@@ -36,6 +38,7 @@ public:
 	void net_thread();
 
 private:
+
      int sd;
 
      Socket sock;

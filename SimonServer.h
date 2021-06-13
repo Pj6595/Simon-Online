@@ -3,6 +3,10 @@
 #include <memory>
 #include <map>
 #include <thread>
+
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+
 typedef std::vector<int> clientVector;
 
 class SimonServer
@@ -41,6 +45,4 @@ private:
 	static const size_t MAX_SEQUENCE = 99; //Simon 99
 
 	Socket sock;
-
-	int jajasi;
 };
