@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <time.h>
 
-
 SimonServer::SimonServer(const char *s, const char *p): sock(s,p){
 	sock.bind();
 	sock.listen(100);
@@ -37,7 +36,6 @@ void SimonServer::hub()
 			//El cliente quiere crear una sala
 			if (room == "create")
 			{
-				jajasi = 0;
 				std::thread newRoom([this]()
 									{ (*this).gameRoom(); });
 				std::thread::id roomId = newRoom.get_id();
@@ -142,7 +140,7 @@ void SimonServer::gameRoom(){
 
 	int messagesReceived;
 	//Bucle de la partida
-	while(room->size() > 1 && sequenceSize < MAX_SEQUENCE){
+	while(room->size() > 1 && sequenceSize <= MAX_SEQUENCE){
 		messagesReceived = 0;
 		genteReady.clear();
 		//Creamos la secuencia
