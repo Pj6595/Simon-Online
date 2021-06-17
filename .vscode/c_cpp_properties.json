@@ -4,7 +4,10 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
+<<<<<<< HEAD
                 "/usr/include/SDL2",
+=======
+>>>>>>> main
                 "/usr/include/SDL2"
             ],
             "defines": [],
