@@ -14,6 +14,7 @@ SimonClient::SimonClient(const char *s, const char *p, const char *n, const char
 	sd = sock.get_sd();
 	if(message == nullptr) action = -2;
 	else action = atoi(message);
+	quit = false;
 }
 
 void SimonClient::login()
@@ -57,7 +58,7 @@ void SimonClient::ready(){
 
 void SimonClient::input_thread()
 {
-	while (true)
+	while (!quit)
 	{
 		// Leer stdin con std::getline
 		std::string msg;
@@ -90,7 +91,7 @@ void SimonClient::input_thread()
 
 void SimonClient::net_thread()
 {
-	while (true)
+	while (!quit)
 	{
 		//Recibir Mensajes de red
 		SimonMessage msg;
@@ -118,27 +119,49 @@ void SimonClient::net_thread()
 
 int main(int argc, char **argv)
 {
-	// variable declarations
+	//Creación del cliente
+	SimonClient ec(argv[1], argv[2], argv[3], argv[4]);
+
+	std::thread net_thread([&ec]()
+						   { ec.net_thread(); });
+
+	ec.login();
+
+	std::thread input_thread([&ec]()
+						   { ec.input_thread(); });
+
+	//Variables de ventana
 	SDL_Window *win = NULL;
 	SDL_Renderer *renderer = NULL;
-	SDL_Texture *img = NULL;
+	SDL_Texture *redButton = NULL, *redButtonP = NULL, 
+	*yellowButton = NULL, *yellowButtonP = NULL,
+	*greenButton = NULL, *greenButtonP = NULL,
+	*blueButton = NULL, *blueButtonP = NULL;
+	SDL_Texture * allTextures[] = {redButton, redButtonP, yellowButton, yellowButtonP, greenButton, greenButtonP, blueButton, blueButtonP};
 	int w, h; // texture width & height
 
 	SDL_Init(SDL_INIT_EVERYTHING);
 	win = SDL_CreateWindow("StabilityIntensifies.exe", SDL_WINDOWPOS_CENTERED,
-							  SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+							  SDL_WINDOWPOS_CENTERED, SimonClient::WINDOW_WIDTH, SimonClient::WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
 	// load our image
-	img = IMG_LoadTexture(renderer, "Tinky.png");
-	SDL_QueryTexture(img, NULL, NULL, &w, &h); // get the width and height of the texture
-	// put the location where we want the texture to be drawn into a rectangle
-	// I'm also scaling the texture 2x simply by setting the width and height
+	redButton = IMG_LoadTexture(renderer, "assets/Rojo.png");
+	redButtonP = IMG_LoadTexture(renderer, "assets/RojoP.png");
+	yellowButton = IMG_LoadTexture(renderer, "assets/Amarillo.png");
+	yellowButtonP = IMG_LoadTexture(renderer, "assets/AmarilloP.png");
+	greenButton = IMG_LoadTexture(renderer, "assets/Verde.png");
+	greenButtonP = IMG_LoadTexture(renderer, "assets/VerdeP.png");
+	blueButton = IMG_LoadTexture(renderer, "assets/Azul.png");
+	blueButtonP = IMG_LoadTexture(renderer, "assets/AzulP.png");
+
 	SDL_Rect texr;
-	texr.x = w / 2;
-	texr.y = h / 2;
-	texr.w = w * 2;
-	texr.h = h * 2;
+	texr.w = 150;
+	texr.h = 150;
+	texr.x = SimonClient::WINDOW_WIDTH / 2 - (texr.w / 2);
+	texr.y = SimonClient::WINDOW_HEIGHT / 2 - texr.h - (texr.h / 2);
+
+	texturesDB[redButton] = texr;
 
 	bool quit = false;
 	// main loop
@@ -148,40 +171,28 @@ int main(int argc, char **argv)
 		SDL_Event e;
 		while (SDL_PollEvent(&e))
 		{
-			std::cout << "DETECTÉ EVENTO\n";
-			if (e.type == SDL_QUIT){
+			if (e.type == SDL_QUIT || (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE))
+			{
 				quit = true;
+				ec.quitGame();
 				break;
 			}
-			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE)
-				break;
-			else if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_e)
-				std::cout << "Albar bobo\n";
-			else std::cout << e.type << std::endl;
 		}
 
 		// clear the screen
 		SDL_RenderClear(renderer);
 		// copy the texture to the rendering context
-		SDL_RenderCopy(renderer, img, NULL, &texr);
+		SDL_RenderCopy(renderer, redButton, NULL, &texturesDB[redButton]);
+		//for (texture in rendergroup) rednercopy(texture, texturesdb[texture])
 		// flip the backbuffer
 		// this means that everything that we prepared behind the screens is actually shown
 		SDL_RenderPresent(renderer);
 	}
-
-	SDL_DestroyTexture(img);
+	for(auto tex : allTextures) SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
 
-	//Initialize networking things
-	SimonClient ec(argv[1], argv[2], argv[3], argv[4]);
-
-	std::thread net_thread([&ec]()
-							{ ec.net_thread(); });
-
-	ec.login();
-
-	ec.input_thread();
+	exit(0);
 
 	return 0;
 }
