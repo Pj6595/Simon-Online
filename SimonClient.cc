@@ -140,22 +140,24 @@ int main(int argc, char **argv)
 	texr.w = w * 2;
 	texr.h = h * 2;
 
+	bool quit = false;
 	// main loop
-	while (1)
+	while (!quit)
 	{
 		// event handling
 		SDL_Event e;
 		while (SDL_PollEvent(&e))
 		{
-			// std::cout << "DETECTÉ EVENTO\n";
-			// if (e.type == SDL_QUIT)
-			// 	break;
-			// else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE)
-			// 	break;
-			// else if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_e)
-			// 	std::cout << "Albar bobo\n";
-			// else std::cout << e.type << std::endl;
-			std::cout << "EVENTOYEAS" << std::endl;
+			std::cout << "DETECTÉ EVENTO\n";
+			if (e.type == SDL_QUIT){
+				quit = true;
+				break;
+			}
+			else if (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE)
+				break;
+			else if(e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_e)
+				std::cout << "Albar bobo\n";
+			else std::cout << e.type << std::endl;
 		}
 
 		// clear the screen
