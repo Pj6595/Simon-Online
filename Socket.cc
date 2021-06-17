@@ -1,4 +1,5 @@
 #include <string.h>
+#include <fcntl.h>
 
 #include "Serializable.h"
 #include "Socket.h"
@@ -25,7 +26,7 @@ Socket::Socket(const char * address, const char * port):sd(-1)
 		std::cout << gai_strerror(sd) << std::endl;
 	}
 
-    sa = *result->ai_addr;
+	sa = *result->ai_addr;
     sa_len = result->ai_addrlen;
 }
 

@@ -2,6 +2,8 @@
 #include "Socket.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
+#include <vector>
+#include <map>
 
 class SimonClient
 {
@@ -25,20 +27,24 @@ public:
 
      void ready();
 
-	/**
+     /**
      *  Rutina principal para el Thread de E/S. Lee datos de STDIN (std::getline)
      *  y los envía por red vía el Socket.
+	texr.y = h / 2;
      */
-	void input_thread();
+     void input_thread();
 
 	/**
      *  Rutina del thread de Red. Recibe datos de la red y los "renderiza"
      *  en STDOUT
      */
 	void net_thread();
+     void quitGame() { quit = true; }
+
+     static const int WINDOW_WIDTH = 800;
+     static const int WINDOW_HEIGHT = 600;
 
 private:
-
      int sd;
 
      Socket sock;
@@ -47,4 +53,7 @@ private:
      */
 	std::string nick;
      int action;
+     bool quit;
+     std::vector<SDL_Texture *> renderGroup;
+     std::map<SDL_Texture *, SDL_Rect> texturesDB;
 };
