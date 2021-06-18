@@ -41,6 +41,30 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "(gdb) CLIENTELA",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/sc",
+            "args": [
+                "localhost",
+                "8888",
+                "jose",
+                "1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }

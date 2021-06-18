@@ -15,12 +15,12 @@ SimonClient::SimonClient(const char *s, const char *p, const char *n, const char
 	if(message == nullptr) action = -2;
 	else action = atoi(message);
 	quit = false;
+	state = GameState::notReady;
 }
 
 void SimonClient::initGame(){
 	//Variables de ventana
 	SDL_Window *win = NULL;
-	SDL_Texture *allTextures[] = {redButton, redButtonP, yellowButton, yellowButtonP, greenButton, greenButtonP, blueButton, blueButtonP};
 	int w, h; // texture width & height
 
 	//Inicialización de la ventana
@@ -31,13 +31,24 @@ void SimonClient::initGame(){
 
 	//Carga de las texturas
 	redButton = IMG_LoadTexture(renderer, "assets/Rojo.png");
+	textures.push_back(redButton);
 	redButtonP = IMG_LoadTexture(renderer, "assets/RojoP.png");
-	yellowButton = IMG_LoadTexture(renderer, "assets/Amarillo.png");
-	yellowButtonP = IMG_LoadTexture(renderer, "assets/AmarilloP.png");
+	textures.push_back(redButtonP);
+	
 	greenButton = IMG_LoadTexture(renderer, "assets/Verde.png");
+	textures.push_back(greenButton);
 	greenButtonP = IMG_LoadTexture(renderer, "assets/VerdeP.png");
+	textures.push_back(greenButtonP);
+
 	blueButton = IMG_LoadTexture(renderer, "assets/Azul.png");
+	textures.push_back(blueButton);
 	blueButtonP = IMG_LoadTexture(renderer, "assets/AzulP.png");
+	textures.push_back(blueButtonP);
+
+	yellowButton = IMG_LoadTexture(renderer, "assets/Amarillo.png");
+	textures.push_back(yellowButton);
+	yellowButtonP = IMG_LoadTexture(renderer, "assets/AmarilloP.png");
+	textures.push_back(yellowButtonP);
 
 	SDL_Rect texr;
 	texr.w = 150;
@@ -46,27 +57,31 @@ void SimonClient::initGame(){
 	texr.y = SimonClient::WINDOW_HEIGHT / 2 - texr.h;
 
 	texturesDB[redButton] = texr;
+	texturesDB[redButtonP] = texr;
 	texr.y += texr.h;
 	texturesDB[blueButton] = texr;
+	texturesDB[blueButtonP] = texr;
 	texr.x -= texr.w;
 	texturesDB[greenButton] = texr;
+	texturesDB[greenButtonP] = texr;
 	texr.x += 2 * texr.w;
 	texturesDB[yellowButton] = texr;
+	texturesDB[yellowButtonP] = texr;
 
-	renderGroup.push_back(redButton);
-	renderGroup.push_back(blueButton);
-	renderGroup.push_back(greenButton);
-	renderGroup.push_back(yellowButton);
+	renderDB[redButton] = true;
+	renderDB[blueButton] = true;
+	renderDB[greenButton] = true;
+	renderDB[yellowButton] = true;
 	
 	bool quit = false;
 	// main loop
 	while (!quit)
 	{
 		handleEvents();
-
+		update();
 		render();
 	}
-	for (auto tex : allTextures)
+	for (auto tex : textures)
 		SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
@@ -81,57 +96,99 @@ void SimonClient::handleEvents(){
 	{
 		if (e.type == SDL_QUIT) {
 			quitGame();
+			exit(0);
 		}
 		switch(e.key.keysym.sym){
 			case SDLK_ESCAPE:
 				quitGame();
 				break;
-			case SDLK_W:
-				if (e.type == SDL_KEYDOWN){
-					renderGroup.push_back(redButtonP);
-				}
-				else (e.type == SDL_KEYUP){
-					renderGroup.pop_back();
+			case SDLK_RETURN:
+				if(state == GameState::notReady){
+					state = GameState::ready;
+					ready();
 				}
 				break;
-			case SDLK_A:
-				if (e.type == SDL_KEYDOWN){
-					renderGroup.push_back(greenButtonP);
+			case SDLK_w:
+				if (e.type == SDL_KEYDOWN)
+				{
+					renderDB[redButtonP] = true;
 				}
-				else (e.type == SDL_KEYUP){
-					renderGroup.pop_back();
-				}
-				break;
-			case SDLK_S:
-				if (e.type == SDL_KEYDOWN){
-					renderGroup.push_back(blueButtonP);
-				}
-				else (e.type == SDL_KEYUP){
-					renderGroup.pop_back();
+				else if (e.type == SDL_KEYUP){
+					renderDB[redButtonP] = false;
+					answerSeq += '0';
 				}
 				break;
-			case SDLK_D:
+			case SDLK_a:
 				if (e.type == SDL_KEYDOWN){
-					renderGroup.push_back(yellowButtonP);
+					renderDB[greenButtonP] = true;
 				}
-				else (e.type == SDL_KEYUP){
-					renderGroup.pop_back();
+				else if (e.type == SDL_KEYUP){
+					renderDB[greenButtonP] = false;
+					answerSeq += '1';
+				}
+				break;
+			case SDLK_s:
+				if (e.type == SDL_KEYDOWN){
+					renderDB[blueButtonP] = true;
+				}
+				else if (e.type == SDL_KEYUP){
+					renderDB[blueButtonP] = false;
+					answerSeq += '2';
+				}
+				break;
+			case SDLK_d:
+				if (e.type == SDL_KEYDOWN){
+					renderDB[yellowButtonP] = true;
+				}
+				else if (e.type == SDL_KEYUP){
+					renderDB[yellowButtonP] = false;
+					answerSeq += '3';
 				}
 				break;				
 		}
 	}
 }
 
+void SimonClient::update(){
+	switch(state){
+		case GameState::writingSequence:
+			if(answerSeq.size() == serverSeq.size()){
+				SimonMessage msg(nick, answerSeq);
+				msg.type = SimonMessage::MessageType::SEQUENCE;
+				sock.send(sd, msg);
+				state = GameState::awaitingSequence;
+			}
+			break;
+		case GameState::watchingSequence:
+			if (showingSequencePosition < (int)serverSeq.size())
+			{
+				showingSequencePosition++;
+				int current = serverSeq[showingSequencePosition] - '0';
+				activeSequenceButton = textures[current * 2 + 1];
+				renderDB[activeSequenceButton] = true;
+			}
+			else{
+				showingSequencePosition = -1;
+				state = GameState::writingSequence;
+				answerSeq = "";
+			}
+			break;
+		}
+}
+
 void SimonClient::render(){
 	// clear the screen
 	SDL_RenderClear(renderer);
 	// copy the texture to the rendering context
-	for(SDL_Texture* tex : renderGroup)
-		SDL_RenderCopy(renderer, tex, NULL, &texturesDB[tex]);
-	//for (texture in rendergroup) rednercopy(texture, texturesdb[texture])
+	for (auto tex: textures)
+		if(renderDB.count(tex) && renderDB[tex]) SDL_RenderCopy(renderer, tex, NULL, &texturesDB[tex]);
 	// flip the backbuffer
 	// this means that everything that we prepared behind the screens is actually shown
 	SDL_RenderPresent(renderer);
+	if(state == GameState::watchingSequence && activeSequenceButton >= 0){
+		usleep(1000000);
+		renderDB[activeSequenceButton] = false;
+	}
 }
 
 void SimonClient::login()
@@ -226,6 +283,8 @@ void SimonClient::net_thread()
 				break;
 			case SimonMessage::SEQUENCE:
 				std::cout << "Tu secuencia es: " << msg.sequence << "\n";
+				state = GameState::watchingSequence;
+				serverSeq = msg.sequence;
 				break;
 			case SimonMessage::READY:
 				std::cout << "Enhorabuena hacker!! Espera instrucciones.\n";

@@ -5,6 +5,15 @@
 #include <vector>
 #include <map>
 
+enum GameState
+{
+     notReady,
+     ready,
+     awaitingSequence,
+     watchingSequence,
+     writingSequence
+};
+
 class SimonClient
 {
 public:
@@ -33,6 +42,8 @@ public:
 
      void render();
 
+     void update();
+
      /**
      *  Rutina principal para el Thread de E/S. Lee datos de STDIN (std::getline)
      *  y los envía por red vía el Socket.
@@ -60,13 +71,20 @@ private:
 	std::string nick;
      int action;
      bool quit;
-     std::vector<SDL_Texture *> renderGroup;
+     std::map<SDL_Texture *, bool> renderDB;
      std::map<SDL_Texture *, SDL_Rect> texturesDB;
 
-	SDL_Renderer *renderer = nullptr;
+     SDL_Renderer *renderer = nullptr;
 
      SDL_Texture *redButton = nullptr, *redButtonP = nullptr,
                  *yellowButton = nullptr, *yellowButtonP = nullptr,
                  *greenButton = nullptr, *greenButtonP = nullptr,
                  *blueButton = nullptr, *blueButtonP = nullptr;
+
+     std::vector<SDL_Texture *> textures;
+     GameState state;
+     std::string answerSeq = "";
+     std::string serverSeq = "";
+     int showingSequencePosition = -1;
+     SDL_Texture* activeSequenceButton = nullptr;
 };
