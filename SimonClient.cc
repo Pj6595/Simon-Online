@@ -17,6 +17,123 @@ SimonClient::SimonClient(const char *s, const char *p, const char *n, const char
 	quit = false;
 }
 
+void SimonClient::initGame(){
+	//Variables de ventana
+	SDL_Window *win = NULL;
+	SDL_Texture *allTextures[] = {redButton, redButtonP, yellowButton, yellowButtonP, greenButton, greenButtonP, blueButton, blueButtonP};
+	int w, h; // texture width & height
+
+	//Inicialización de la ventana
+	SDL_Init(SDL_INIT_EVERYTHING);
+	win = SDL_CreateWindow("StabilityIntensifies.exe", SDL_WINDOWPOS_CENTERED,
+						   SDL_WINDOWPOS_CENTERED, SimonClient::WINDOW_WIDTH, SimonClient::WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
+	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+
+	//Carga de las texturas
+	redButton = IMG_LoadTexture(renderer, "assets/Rojo.png");
+	redButtonP = IMG_LoadTexture(renderer, "assets/RojoP.png");
+	yellowButton = IMG_LoadTexture(renderer, "assets/Amarillo.png");
+	yellowButtonP = IMG_LoadTexture(renderer, "assets/AmarilloP.png");
+	greenButton = IMG_LoadTexture(renderer, "assets/Verde.png");
+	greenButtonP = IMG_LoadTexture(renderer, "assets/VerdeP.png");
+	blueButton = IMG_LoadTexture(renderer, "assets/Azul.png");
+	blueButtonP = IMG_LoadTexture(renderer, "assets/AzulP.png");
+
+	SDL_Rect texr;
+	texr.w = 150;
+	texr.h = 150;
+	texr.x = SimonClient::WINDOW_WIDTH / 2 - (texr.w / 2);
+	texr.y = SimonClient::WINDOW_HEIGHT / 2 - texr.h;
+
+	texturesDB[redButton] = texr;
+	texr.y += texr.h;
+	texturesDB[blueButton] = texr;
+	texr.x -= texr.w;
+	texturesDB[greenButton] = texr;
+	texr.x += 2 * texr.w;
+	texturesDB[yellowButton] = texr;
+
+	renderGroup.push_back(redButton);
+	renderGroup.push_back(blueButton);
+	renderGroup.push_back(greenButton);
+	renderGroup.push_back(yellowButton);
+	
+	bool quit = false;
+	// main loop
+	while (!quit)
+	{
+		handleEvents();
+
+		render();
+	}
+	for (auto tex : allTextures)
+		SDL_DestroyTexture(tex);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(win);
+
+	exit(0);
+}
+
+void SimonClient::handleEvents(){
+	// event handling
+	SDL_Event e;
+	while (SDL_PollEvent(&e))
+	{
+		if (e.type == SDL_QUIT) {
+			quitGame();
+		}
+		switch(e.key.keysym.sym){
+			case SDLK_ESCAPE:
+				quitGame();
+				break;
+			case SDLK_W:
+				if (e.type == SDL_KEYDOWN){
+					renderGroup.push_back(redButtonP);
+				}
+				else (e.type == SDL_KEYUP){
+					renderGroup.pop_back();
+				}
+				break;
+			case SDLK_A:
+				if (e.type == SDL_KEYDOWN){
+					renderGroup.push_back(greenButtonP);
+				}
+				else (e.type == SDL_KEYUP){
+					renderGroup.pop_back();
+				}
+				break;
+			case SDLK_S:
+				if (e.type == SDL_KEYDOWN){
+					renderGroup.push_back(blueButtonP);
+				}
+				else (e.type == SDL_KEYUP){
+					renderGroup.pop_back();
+				}
+				break;
+			case SDLK_D:
+				if (e.type == SDL_KEYDOWN){
+					renderGroup.push_back(yellowButtonP);
+				}
+				else (e.type == SDL_KEYUP){
+					renderGroup.pop_back();
+				}
+				break;				
+		}
+	}
+}
+
+void SimonClient::render(){
+	// clear the screen
+	SDL_RenderClear(renderer);
+	// copy the texture to the rendering context
+	for(SDL_Texture* tex : renderGroup)
+		SDL_RenderCopy(renderer, tex, NULL, &texturesDB[tex]);
+	//for (texture in rendergroup) rednercopy(texture, texturesdb[texture])
+	// flip the backbuffer
+	// this means that everything that we prepared behind the screens is actually shown
+	SDL_RenderPresent(renderer);
+}
+
 void SimonClient::login()
 {
 	std::string msg;
@@ -130,69 +247,7 @@ int main(int argc, char **argv)
 	std::thread input_thread([&ec]()
 						   { ec.input_thread(); });
 
-	//Variables de ventana
-	SDL_Window *win = NULL;
-	SDL_Renderer *renderer = NULL;
-	SDL_Texture *redButton = NULL, *redButtonP = NULL, 
-	*yellowButton = NULL, *yellowButtonP = NULL,
-	*greenButton = NULL, *greenButtonP = NULL,
-	*blueButton = NULL, *blueButtonP = NULL;
-	SDL_Texture * allTextures[] = {redButton, redButtonP, yellowButton, yellowButtonP, greenButton, greenButtonP, blueButton, blueButtonP};
-	int w, h; // texture width & height
-
-	SDL_Init(SDL_INIT_EVERYTHING);
-	win = SDL_CreateWindow("StabilityIntensifies.exe", SDL_WINDOWPOS_CENTERED,
-							  SDL_WINDOWPOS_CENTERED, SimonClient::WINDOW_WIDTH, SimonClient::WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
-	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-
-	// load our image
-	redButton = IMG_LoadTexture(renderer, "assets/Rojo.png");
-	redButtonP = IMG_LoadTexture(renderer, "assets/RojoP.png");
-	yellowButton = IMG_LoadTexture(renderer, "assets/Amarillo.png");
-	yellowButtonP = IMG_LoadTexture(renderer, "assets/AmarilloP.png");
-	greenButton = IMG_LoadTexture(renderer, "assets/Verde.png");
-	greenButtonP = IMG_LoadTexture(renderer, "assets/VerdeP.png");
-	blueButton = IMG_LoadTexture(renderer, "assets/Azul.png");
-	blueButtonP = IMG_LoadTexture(renderer, "assets/AzulP.png");
-
-	SDL_Rect texr;
-	texr.w = 150;
-	texr.h = 150;
-	texr.x = SimonClient::WINDOW_WIDTH / 2 - (texr.w / 2);
-	texr.y = SimonClient::WINDOW_HEIGHT / 2 - texr.h - (texr.h / 2);
-
-	texturesDB[redButton] = texr;
-
-	bool quit = false;
-	// main loop
-	while (!quit)
-	{
-		// event handling
-		SDL_Event e;
-		while (SDL_PollEvent(&e))
-		{
-			if (e.type == SDL_QUIT || (e.type == SDL_KEYUP && e.key.keysym.sym == SDLK_ESCAPE))
-			{
-				quit = true;
-				ec.quitGame();
-				break;
-			}
-		}
-
-		// clear the screen
-		SDL_RenderClear(renderer);
-		// copy the texture to the rendering context
-		SDL_RenderCopy(renderer, redButton, NULL, &texturesDB[redButton]);
-		//for (texture in rendergroup) rednercopy(texture, texturesdb[texture])
-		// flip the backbuffer
-		// this means that everything that we prepared behind the screens is actually shown
-		SDL_RenderPresent(renderer);
-	}
-	for(auto tex : allTextures) SDL_DestroyTexture(tex);
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(win);
-
-	exit(0);
+	ec.initGame();
 
 	return 0;
 }

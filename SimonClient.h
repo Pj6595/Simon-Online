@@ -27,6 +27,12 @@ public:
 
      void ready();
 
+     void initGame();
+
+     void handleEvents();
+
+     void render();
+
      /**
      *  Rutina principal para el Thread de E/S. Lee datos de STDIN (std::getline)
      *  y los envía por red vía el Socket.
@@ -56,4 +62,11 @@ private:
      bool quit;
      std::vector<SDL_Texture *> renderGroup;
      std::map<SDL_Texture *, SDL_Rect> texturesDB;
+
+	SDL_Renderer *renderer = nullptr;
+
+     SDL_Texture *redButton = nullptr, *redButtonP = nullptr,
+                 *yellowButton = nullptr, *yellowButtonP = nullptr,
+                 *greenButton = nullptr, *greenButtonP = nullptr,
+                 *blueButton = nullptr, *blueButtonP = nullptr;
 };
