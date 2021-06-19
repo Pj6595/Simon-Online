@@ -79,7 +79,11 @@ private:
      SDL_Texture *redButton = nullptr, *redButtonP = nullptr,
                  *yellowButton = nullptr, *yellowButtonP = nullptr,
                  *greenButton = nullptr, *greenButtonP = nullptr,
-                 *blueButton = nullptr, *blueButtonP = nullptr;
+                 *blueButton = nullptr, *blueButtonP = nullptr,
+                 *winText = nullptr, *loseText = nullptr,
+                 *waitPlayerText = nullptr, *waitServerText = nullptr,
+                 *readyText = nullptr, *titleText = nullptr,
+                 *rememberText = nullptr, *writeText = nullptr;
 
      std::vector<SDL_Texture *> textures;
      GameState state;

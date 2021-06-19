@@ -50,6 +50,30 @@ void SimonClient::initGame(){
 	yellowButtonP = IMG_LoadTexture(renderer, "assets/AmarilloP.png");
 	textures.push_back(yellowButtonP);
 
+	titleText = IMG_LoadTexture(renderer, "assets/TitleText.png");
+	textures.push_back(titleText);
+
+	readyText = IMG_LoadTexture(renderer, "assets/PulsaEnterText.png");
+	textures.push_back(readyText);
+
+	winText = IMG_LoadTexture(renderer, "assets/GanarText.png");
+	textures.push_back(winText);
+
+	loseText = IMG_LoadTexture(renderer, "assets/PierdeText.png");
+	textures.push_back(loseText);
+
+	waitPlayerText = IMG_LoadTexture(renderer, "assets/EsperandoJugadoresText.png");
+	textures.push_back(waitPlayerText);
+
+	waitServerText = IMG_LoadTexture(renderer, "assets/EsperandoServidorText.png");
+	textures.push_back(waitServerText);
+
+	rememberText = IMG_LoadTexture(renderer, "assets/MemorizaText.png");
+	textures.push_back(rememberText);
+
+	writeText = IMG_LoadTexture(renderer, "assets/RepiteText.png");
+	textures.push_back(writeText);
+
 	SDL_Rect texr;
 	texr.w = 150;
 	texr.h = 150;
@@ -68,10 +92,25 @@ void SimonClient::initGame(){
 	texturesDB[yellowButton] = texr;
 	texturesDB[yellowButtonP] = texr;
 
-	renderDB[redButton] = true;
-	renderDB[blueButton] = true;
-	renderDB[greenButton] = true;
-	renderDB[yellowButton] = true;
+	texr.w = 600;
+	texr.h = 50;
+	texr.x = WINDOW_WIDTH / 2 - texr.w / 2;
+	texr.y = 500;
+	texturesDB[readyText] = texr;
+	texturesDB[loseText] = texr;
+	texturesDB[winText] = texr;
+	texturesDB[waitPlayerText] = texr;
+	texturesDB[waitServerText] = texr;
+	texturesDB[rememberText] = texr;
+	texturesDB[writeText] = texr;
+
+	texr.w = 300;
+	texr.y = 50;
+	texr.x = WINDOW_WIDTH / 2 - texr.w / 2;
+	texturesDB[titleText] = texr;
+
+	renderDB[titleText] = true;
+	renderDB[readyText] = true;
 	
 	bool quit = false;
 	// main loop
@@ -105,6 +144,8 @@ void SimonClient::handleEvents(){
 			case SDLK_RETURN:
 				if(state == GameState::notReady){
 					state = GameState::ready;
+					renderDB[waitPlayerText] = true;
+					renderDB[readyText] = false;
 					ready();
 				}
 				break;
@@ -158,6 +199,8 @@ void SimonClient::update(){
 				sock.send(sd, msg);
 				answerSeq = "";
 				state = GameState::awaitingSequence;
+				renderDB[writeText] = false;
+				renderDB[waitPlayerText] = true;
 			}
 			break;
 		case GameState::watchingSequence:
@@ -171,6 +214,8 @@ void SimonClient::update(){
 			else{
 				showingSequencePosition = -1;
 				state = GameState::writingSequence;
+				renderDB[rememberText] = false;
+				renderDB[writeText] = true;
 				answerSeq = "";
 			}
 			break;
@@ -187,8 +232,9 @@ void SimonClient::render(){
 	// this means that everything that we prepared behind the screens is actually shown
 	SDL_RenderPresent(renderer);
 	if(state == GameState::watchingSequence && activeSequenceButton >= 0){
-		//usleep(1000000);
+		SDL_Delay(500);
 		renderDB[activeSequenceButton] = false;
+		SDL_Delay(500);
 	}
 }
 
@@ -272,7 +318,7 @@ void SimonClient::input_thread()
 
 void SimonClient::net_thread()
 {
-	while (true)
+	while (!quit)
 	{
 		//Recibir Mensajes de red
 		SimonMessage msg;
@@ -283,14 +329,28 @@ void SimonClient::net_thread()
 		//Si el mensaje es login o logout mostramos un mensaje informativo
 		switch(msg.type){
 			case SimonMessage::LOGOUT:
-				if(msg.sequence == "WIN") std::cout << "A winner is you\n";
-				else std::cout << msg.sequence << "\n";
-				exit(0);
+				if(msg.sequence == "WIN"){
+					std::cout << "A winner is you\n";
+					renderDB[waitPlayerText] = false;
+					renderDB[winText] = true;
+				} 
+				else {
+					std::cout << msg.sequence << "\n";
+					renderDB[waitPlayerText] = false;
+					renderDB[loseText] = true;
+				} 
+				quit = true;
 				break;
 			case SimonMessage::LOGIN:
 				std::cout << msg.sequence << "\n";
 				break;
 			case SimonMessage::SEQUENCE:
+				renderDB[waitPlayerText] = false;
+				renderDB[rememberText] = true;
+				renderDB[redButton] = true;
+				renderDB[blueButton] = true;
+				renderDB[greenButton] = true;
+				renderDB[yellowButton] = true;
 				std::cout << "Tu secuencia es: " << msg.sequence << "\n";
 				serverSeq = msg.sequence;
 				state = GameState::watchingSequence;
