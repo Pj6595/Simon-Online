@@ -65,6 +65,30 @@
                     "ignoreFailures": true
                 }
             ]
+        },
+        {
+            "name": "Jose 7777 0",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/sc",
+            "args": [
+                "localhost",
+                "7777",
+                "jose",
+                "0"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
         }
     ]
 }

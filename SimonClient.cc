@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 SimonClient::SimonClient(const char *s, const char *p, const char *n, const char* message) : nick(n), sock(s,p){
-	sock.bind();
+	//sock.bind();
 	sock.connect();
 	sd = sock.get_sd();
 	if(message == nullptr) action = -2;
@@ -25,7 +25,7 @@ void SimonClient::initGame(){
 
 	//Inicialización de la ventana
 	SDL_Init(SDL_INIT_EVERYTHING);
-	win = SDL_CreateWindow("TintoDeVeranoDonSimon.exe", SDL_WINDOWPOS_CENTERED,
+	win = SDL_CreateWindow("Simon Online", SDL_WINDOWPOS_CENTERED,
 						   SDL_WINDOWPOS_CENTERED, SimonClient::WINDOW_WIDTH, SimonClient::WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
@@ -156,6 +156,7 @@ void SimonClient::update(){
 				SimonMessage msg(nick, answerSeq);
 				msg.type = SimonMessage::MessageType::SEQUENCE;
 				sock.send(sd, msg);
+				answerSeq = "";
 				state = GameState::awaitingSequence;
 			}
 			break;
@@ -186,7 +187,7 @@ void SimonClient::render(){
 	// this means that everything that we prepared behind the screens is actually shown
 	SDL_RenderPresent(renderer);
 	if(state == GameState::watchingSequence && activeSequenceButton >= 0){
-		usleep(1000000);
+		//usleep(1000000);
 		renderDB[activeSequenceButton] = false;
 	}
 }
@@ -209,6 +210,7 @@ void SimonClient::login()
 			break;
 	}
 	sock.send(sd, em);
+	std::cout << "MENSAJE LOGIN ENVIADO AL SERVIDOR\n";
 }
 
 void SimonClient::logout()
@@ -219,6 +221,7 @@ void SimonClient::logout()
 	logoutMsg.type = SimonMessage::LOGOUT;
 
 	sock.send(sd, logoutMsg);
+	std::cout << "MENSAJE LOGOUT ENVIADO AL SERVIDOR\n";
 }
 
 void SimonClient::ready(){
@@ -228,6 +231,7 @@ void SimonClient::ready(){
 	readyMsg.type = SimonMessage::READY;
 
 	sock.send(sd, readyMsg);
+	std::cout << "MENSAJE READY ENVIADO AL SERVIDOR\n";
 }
 
 void SimonClient::input_thread()
@@ -255,21 +259,26 @@ void SimonClient::input_thread()
 			ready();
 			continue;
 		}
-		else
+		else{
 			message.type = SimonMessage::SEQUENCE;
+			sock.send(sd, message);
+		}
+			
 
 		// Enviar al servidor usando socket
-		sock.send(sd, message);
+		//sock.send(sd, message);
 	}
 }
 
 void SimonClient::net_thread()
 {
-	while (!quit)
+	while (true)
 	{
 		//Recibir Mensajes de red
 		SimonMessage msg;
-		sock.recv(sd, msg);
+		if(sock.recv(sd, msg) == -1)
+		std::cout << "ERROR RECIBIENDO MENSAJE\n";
+		std::cout << "MENSAJE RECIBIDO DEL SERVIDOR\n";
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
 		switch(msg.type){
@@ -283,8 +292,8 @@ void SimonClient::net_thread()
 				break;
 			case SimonMessage::SEQUENCE:
 				std::cout << "Tu secuencia es: " << msg.sequence << "\n";
-				state = GameState::watchingSequence;
 				serverSeq = msg.sequence;
+				state = GameState::watchingSequence;
 				break;
 			case SimonMessage::READY:
 				std::cout << "Enhorabuena hacker!! Espera instrucciones.\n";
@@ -298,13 +307,13 @@ int main(int argc, char **argv)
 	//Creación del cliente
 	SimonClient ec(argv[1], argv[2], argv[3], argv[4]);
 
-	std::thread net_thread([&ec]()
-						   { ec.net_thread(); });
+	std::thread([&ec]()
+				{ ec.net_thread(); }).detach();
 
 	ec.login();
 
-	std::thread input_thread([&ec]()
-						   { ec.input_thread(); });
+	std::thread([&ec]()
+				{ ec.input_thread(); }).detach();
 
 	ec.initGame();
 
