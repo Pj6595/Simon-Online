@@ -25,7 +25,7 @@ void SimonClient::initGame(){
 
 	//Inicialización de la ventana
 	SDL_Init(SDL_INIT_EVERYTHING);
-	win = SDL_CreateWindow("StabilityIntensifies.exe", SDL_WINDOWPOS_CENTERED,
+	win = SDL_CreateWindow("TintoDeVeranoDonSimon.exe", SDL_WINDOWPOS_CENTERED,
 						   SDL_WINDOWPOS_CENTERED, SimonClient::WINDOW_WIDTH, SimonClient::WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 

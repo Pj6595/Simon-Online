@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launcha libre 2",
+            "name": "Server 7777",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/ss",
@@ -21,7 +21,7 @@
             ]
         },
         {
-            "name": "(gdb) LONCHA DE QUESO",
+            "name": "Server 8888",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/ss",
@@ -43,7 +43,7 @@
             ]
         },
         {
-            "name": "(gdb) CLIENTELA",
+            "name": "Jose 8888 0",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/sc",
@@ -51,7 +51,7 @@
                 "localhost",
                 "8888",
                 "jose",
-                "1"
+                "0"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

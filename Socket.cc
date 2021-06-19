@@ -1,5 +1,4 @@
 #include <string.h>
-#include <fcntl.h>
 
 #include "Serializable.h"
 #include "Socket.h"

@@ -139,14 +139,13 @@ void SimonServer::gameRoom(){
 	openRooms.erase(std::find(openRooms.begin(), openRooms.end(), id));
 
 	int messagesReceived;
+	std::string sequence = "";
 	//Bucle de la partida
 	while(room->size() > 1 && sequenceSize <= MAX_SEQUENCE){
 		messagesReceived = 0;
 		genteReady.clear();
 		//Creamos la secuencia
-		std::string sequence = "";
-		for (int i = 0; i < sequenceSize; i++)
-			sequence += std::to_string(rand() % 4);
+		sequence += std::to_string(rand() % 4);
 		
 		//Creamos el mensaje con la secuencia y lo enviamos a los clientes
 		SimonMessage msg("server", sequence);
