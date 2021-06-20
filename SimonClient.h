@@ -5,6 +5,12 @@
 #include <vector>
 #include <map>
 
+#define RED "\033[1;31m"
+#define GREEN "\033[1;32m"
+#define YELLOW "\033[1;33m"
+#define BLUE "\033[1;34m"
+#define RESET "\033[0m"
+
 enum GameState
 {
      notReady,
@@ -83,12 +89,13 @@ private:
                  *winText = nullptr, *loseText = nullptr,
                  *waitPlayerText = nullptr, *waitServerText = nullptr,
                  *readyText = nullptr, *titleText = nullptr,
-                 *rememberText = nullptr, *writeText = nullptr;
+                 *rememberText = nullptr, *writeText = nullptr, 
+                 *nickText = nullptr, *rivalCountText = nullptr;
 
      std::vector<SDL_Texture *> textures;
      GameState state;
      std::string answerSeq = "";
      std::string serverSeq = "";
      int showingSequencePosition = -1;
-     SDL_Texture* activeSequenceButton = nullptr;
+     SDL_Texture* activeSequenceButton = nullptr;    
 };

@@ -24,6 +24,8 @@ public:
 	 */
 	void gameRoom();
 
+	//void receive_messages(int cliente_sd, clientVector* room, int *&messagesReceived, int * &readyClients, std::map<int, bool>* &genteReady, std::string *&sequence);
+
 private:
 
 	int roomCount = 0;
@@ -37,12 +39,33 @@ private:
 	/**
      *  Identifica las salas que admiten nuevos jugadores
      */
-	std::vector<std::thread::id> openRooms;
+	std::vector<int> openRooms;
 
 	int sd;
 
 	static const size_t MAX_ROOM = 99; //Simon 99
-	static const size_t MAX_SEQUENCE = 99; //Simon 99
 
 	Socket sock;
+};
+
+class SimonRoom
+{
+public:
+	SimonRoom(int rn, Socket *sock, std::map<std::thread::id, clientVector> *rooms, std::vector<int> *openRooms);
+	void gameRoom();
+	void receive_messages(int cliente_sd);
+
+private:
+	int roomNumber;
+	clientVector *room;
+	int messagesReceived;
+	int sequenceSize = 1;
+	int readyClients = 0;
+	std::string sequence = "";
+	std::map<int, bool> genteReady;
+	Socket *sock;
+	std::map<std::thread::id, clientVector> *rooms;
+	std::vector<int> *openRooms;
+
+	static const size_t MAX_SEQUENCE = 99; //Simon 99
 };

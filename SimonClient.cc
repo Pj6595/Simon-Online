@@ -111,10 +111,11 @@ void SimonClient::initGame(){
 	texturesDB[writeText] = texr;
 
 	texr.w = 300;
-	texr.y = 50;
+	texr.y = 25;
 	texr.x = WINDOW_WIDTH / 2 - texr.w / 2;
 	texturesDB[titleText] = texr;
 
+	renderDB[nickText] = true;
 	renderDB[titleText] = true;
 	renderDB[readyText] = true;
 	
@@ -204,6 +205,7 @@ void SimonClient::update(){
 				SimonMessage msg(nick, answerSeq);
 				msg.type = SimonMessage::MessageType::SEQUENCE;
 				sock.send(sd, msg);
+				std::cout << BLUE << "SECUENCIA ENVIADA\n" << RESET;
 				answerSeq = "";
 				renderDB[writeText] = false;
 				renderDB[waitPlayerText] = true;
@@ -259,7 +261,7 @@ void SimonClient::login()
 	else if(argMessage == "create") em.sequence = "create";
 	else em.sequence = "";
 	sock.send(sd, em);
-	std::cout << "MENSAJE LOGIN ENVIADO AL SERVIDOR\n";
+	std::cout << BLUE << "MENSAJE LOGIN ENVIADO AL SERVIDOR\n" << RESET;
 }
 
 void SimonClient::logout()
@@ -270,7 +272,7 @@ void SimonClient::logout()
 	logoutMsg.type = SimonMessage::LOGOUT;
 
 	sock.send(sd, logoutMsg);
-	std::cout << "MENSAJE LOGOUT ENVIADO AL SERVIDOR\n";
+	std::cout << BLUE << "MENSAJE LOGOUT ENVIADO AL SERVIDOR\n" << RESET;
 }
 
 void SimonClient::ready(){
@@ -280,7 +282,7 @@ void SimonClient::ready(){
 	readyMsg.type = SimonMessage::READY;
 
 	sock.send(sd, readyMsg);
-	std::cout << "MENSAJE READY ENVIADO AL SERVIDOR\n";
+	std::cout << BLUE << "MENSAJE READY ENVIADO AL SERVIDOR\n" << RESET;
 }
 
 void SimonClient::input_thread()
@@ -304,7 +306,7 @@ void SimonClient::input_thread()
 			continue;
 		}
 		else if(msg == "READY"){
-			std::cout << "ESTOY READY\n";
+			std::cout << YELLOW << "ESTOY READY\n" << RESET;
 			ready();
 			continue;
 		}
@@ -327,22 +329,22 @@ void SimonClient::net_thread()
 		//Recibir Mensajes de red
 		SimonMessage msg;
 		if(sock.recv(sd, msg) == -1){
-			std::cout << "MURIÓ EL SERVIDOR\n";
+			std::cout << RED << "MURIÓ EL SERVIDOR\n" << RESET;
 			quitGame();
 			exit(0);
 		}
-		else std::cout << "MENSAJE RECIBIDO DEL SERVIDOR\n";
+		else std::cout << BLUE << "MENSAJE RECIBIDO DEL SERVIDOR\n" << RESET;
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
 		switch(msg.type){
 			case SimonMessage::LOGOUT:
 				if(msg.sequence == "WIN"){
-					std::cout << "A winner is you\n";
+					std::cout << GREEN << "A winner is you\n" << RESET;
 					renderDB[waitPlayerText] = false;
 					renderDB[winText] = true;
 				} 
 				else {
-					std::cout << msg.sequence << "\n";
+					std::cout << RED << "Has perdido y ahora morirás por ello\n" << RESET;
 					renderDB[waitPlayerText] = false;
 					renderDB[loseText] = true;
 				} 
@@ -352,18 +354,19 @@ void SimonClient::net_thread()
 				std::cout << msg.sequence << "\n";
 				break;
 			case SimonMessage::SEQUENCE:
+				std::cout << YELLOW << "QUEDAN " << msg.nick << " RIVALES\n" << YELLOW;
 				renderDB[waitPlayerText] = false;
 				renderDB[rememberText] = true;
 				renderDB[redButton] = true;
 				renderDB[blueButton] = true;
 				renderDB[greenButton] = true;
 				renderDB[yellowButton] = true;
-				std::cout << "Tu secuencia es: " << msg.sequence << "\n";
+				std::cout << YELLOW << "Tu secuencia es: " << msg.sequence << "\n" << YELLOW;
 				serverSeq = msg.sequence;
 				state = GameState::watchingSequence;
 				break;
 			case SimonMessage::READY:
-				std::cout << "Enhorabuena hacker!! Espera instrucciones.\n";
+				std::cout << YELLOW << "Enhorabuena hacker!! Espera instrucciones.\n" << YELLOW;
 				break;
 		}
 	}

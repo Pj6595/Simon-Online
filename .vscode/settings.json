@@ -54,5 +54,6 @@
         "concepts": "cpp",
         "ranges": "cpp",
         "stop_token": "cpp"
-    }
+    },
+    "C_Cpp.default.systemIncludePath": []
 }
