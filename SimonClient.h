@@ -22,7 +22,7 @@ public:
      * @param p puerto del servidor
      * @param n nick del usuario
      */
-	SimonClient(const char *s, const char *p, const char *n, const char* message);
+	SimonClient(char *s, char *p, char *n, char* message, char* room);
 
 	/**
      *  Envía el mensaje de login al servidor
@@ -69,7 +69,7 @@ private:
      * Nick del usuario
      */
 	std::string nick;
-     int action;
+     std::string argMessage, argRoom;
      bool quit;
      std::map<SDL_Texture *, bool> renderDB;
      std::map<SDL_Texture *, SDL_Rect> texturesDB;

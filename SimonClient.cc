@@ -8,12 +8,18 @@
 #include <netdb.h>
 #include <unistd.h>
 
-SimonClient::SimonClient(const char *s, const char *p, const char *n, const char* message) : nick(n), sock(s,p){
-	//sock.bind();
+SimonClient::SimonClient(char *s, char *p, char *n, char* message, char* room) : nick(n), sock(s,p){
+	//Creamos el socket y lo conectamos
+	sock.bind();
 	sock.connect();
 	sd = sock.get_sd();
-	if(message == nullptr) action = -2;
-	else action = atoi(message);
+	
+	if(message == NULL) argMessage = "";
+	else argMessage = std::string(message);
+
+	if(room == NULL) argRoom = "";
+	else argRoom = std::string(room);
+
 	quit = false;
 	state = GameState::notReady;
 }
@@ -194,11 +200,11 @@ void SimonClient::update(){
 	switch(state){
 		case GameState::writingSequence:
 			if(answerSeq.size() == serverSeq.size()){
+				state = GameState::awaitingSequence;
 				SimonMessage msg(nick, answerSeq);
 				msg.type = SimonMessage::MessageType::SEQUENCE;
 				sock.send(sd, msg);
 				answerSeq = "";
-				state = GameState::awaitingSequence;
 				renderDB[writeText] = false;
 				renderDB[waitPlayerText] = true;
 			}
@@ -212,8 +218,8 @@ void SimonClient::update(){
 				renderDB[activeSequenceButton] = true;
 			}
 			else{
-				showingSequencePosition = -1;
 				state = GameState::writingSequence;
+				showingSequencePosition = -1;
 				renderDB[rememberText] = false;
 				renderDB[writeText] = true;
 				answerSeq = "";
@@ -234,6 +240,11 @@ void SimonClient::render(){
 	if(state == GameState::watchingSequence && activeSequenceButton >= 0){
 		SDL_Delay(500);
 		renderDB[activeSequenceButton] = false;
+		SDL_RenderClear(renderer);
+		for (auto tex : textures)
+			if (renderDB.count(tex) && renderDB[tex])
+				SDL_RenderCopy(renderer, tex, NULL, &texturesDB[tex]);
+		SDL_RenderPresent(renderer);
 		SDL_Delay(500);
 	}
 }
@@ -244,17 +255,9 @@ void SimonClient::login()
 
 	SimonMessage em(nick, msg);
 	em.type = SimonMessage::LOGIN;
-	switch(action){
-		case -2:
-			em.sequence = "";
-			break;
-		case -1:
-			em.sequence = "create";
-			break;
-		default:
-			em.sequence = std::to_string(action);
-			break;
-	}
+	if (argMessage == "join" && argRoom != "") em.sequence = argRoom;
+	else if(argMessage == "create") em.sequence = "create";
+	else em.sequence = "";
 	sock.send(sd, em);
 	std::cout << "MENSAJE LOGIN ENVIADO AL SERVIDOR\n";
 }
@@ -318,13 +321,17 @@ void SimonClient::input_thread()
 
 void SimonClient::net_thread()
 {
+	login();
 	while (!quit)
 	{
 		//Recibir Mensajes de red
 		SimonMessage msg;
-		if(sock.recv(sd, msg) == -1)
-		std::cout << "ERROR RECIBIENDO MENSAJE\n";
-		std::cout << "MENSAJE RECIBIDO DEL SERVIDOR\n";
+		if(sock.recv(sd, msg) == -1){
+			std::cout << "MURIÓ EL SERVIDOR\n";
+			quitGame();
+			exit(0);
+		}
+		else std::cout << "MENSAJE RECIBIDO DEL SERVIDOR\n";
 
 		//Si el mensaje es login o logout mostramos un mensaje informativo
 		switch(msg.type){
@@ -365,12 +372,10 @@ void SimonClient::net_thread()
 int main(int argc, char **argv)
 {
 	//Creación del cliente
-	SimonClient ec(argv[1], argv[2], argv[3], argv[4]);
+	SimonClient ec(argv[1], argv[2], argv[3], argv[4], argv[5]);
 
 	std::thread([&ec]()
 				{ ec.net_thread(); }).detach();
-
-	ec.login();
 
 	std::thread([&ec]()
 				{ ec.input_thread(); }).detach();
