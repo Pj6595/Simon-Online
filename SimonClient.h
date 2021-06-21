@@ -23,21 +23,18 @@ enum GameState
 class SimonClient
 {
 public:
-	/**
+     static const int WINDOW_WIDTH = 800;
+     static const int WINDOW_HEIGHT = 600;
+
+     /**
      * @param s dirección del servidor
      * @param p puerto del servidor
      * @param n nick del usuario
      */
 	SimonClient(char *s, char *p, char *n, char* message, char* room);
 
-	/**
-     *  Envía el mensaje de login al servidor
-     */
 	void login();
 
-	/**
-     *  Envía el mensaje de logout al servidor
-     */
 	void logout();
 
      void ready();
@@ -50,38 +47,25 @@ public:
 
      void update();
 
-     /**
-     *  Rutina principal para el Thread de E/S. Lee datos de STDIN (std::getline)
-     *  y los envía por red vía el Socket.
-	texr.y = h / 2;
-     */
      void input_thread();
 
-	/**
-     *  Rutina del thread de Red. Recibe datos de la red y los "renderiza"
-     *  en STDOUT
-     */
 	void net_thread();
-     void quitGame() { quit = true; }
-
-     static const int WINDOW_WIDTH = 800;
-     static const int WINDOW_HEIGHT = 600;
 
 private:
+     //Descriptor del socket
      int sd;
-
      Socket sock;
-     /**
-     * Nick del usuario
-     */
+     //Nombre del usuario y argumentos introducidos en la consola
 	std::string nick;
-     std::string argMessage, argRoom;
-     bool quit;
+     std::string argMessage = "", argRoom = "";
+
+     //Diccionario con punteros a texturas y booleano indicando si deben renderizarse
      std::map<SDL_Texture *, bool> renderDB;
+     //Diccionario que relaciona las texturas con sus rectángulos en pantalla
      std::map<SDL_Texture *, SDL_Rect> texturesDB;
 
+     //Render y texturas del juego
      SDL_Renderer *renderer = nullptr;
-
      SDL_Texture *redButton = nullptr, *redButtonP = nullptr,
                  *yellowButton = nullptr, *yellowButtonP = nullptr,
                  *greenButton = nullptr, *greenButtonP = nullptr,
@@ -90,11 +74,18 @@ private:
                  *waitPlayerText = nullptr, *waitServerText = nullptr,
                  *readyText = nullptr, *titleText = nullptr,
                  *rememberText = nullptr, *writeText = nullptr;
-
      std::vector<SDL_Texture *> textures;
+
+     //Variable que indica el estado actual del juego
      GameState state;
+
+     //Secuencia escrita por el cliente y enviada por el servidor
      std::string answerSeq = "";
      std::string serverSeq = "";
+
+     //Posición de la secuencia que se está mostrando por pantalla y textura del botón activo
      int showingSequencePosition = -1;
      SDL_Texture* activeSequenceButton = nullptr;
+
+     bool quit;
 };

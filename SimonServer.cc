@@ -42,8 +42,9 @@ void SimonServer::hub()
 				newRoom.detach();
 				rooms[roomId] = clientVector();
 				rooms[roomId].push_back(cliente_sd);
-				openRooms.push_back(roomId);
+				openRooms[roomId] = true;
 				roomDB[roomCount] = roomId;
+
 				SimonMessage reply("server", "Has creado la sala número " + std::to_string(roomCount));
 				roomCount++;
 				reply.type = SimonMessage::LOGIN;
@@ -52,55 +53,21 @@ void SimonServer::hub()
 			//El cliente quiere unirse a una sala
 			else if (roomNumber >= 0)
 			{
-				//Si la sala existe...
-				if (roomDB.count(roomNumber))
+				//Si la sala existe y está abierta...
+				if (openRooms.count(roomDB[roomNumber]) && openRooms[roomDB[roomNumber]])
 				{
-					auto roomId = roomDB[roomNumber];
-					auto i = std::find(openRooms.begin(), openRooms.end(), roomId);
-					//Si la sala admite jugadores...
-					if (i != openRooms.end())
-					{
-						rooms[roomDB[roomNumber]].push_back(cliente_sd);
-						SimonMessage reply("server", "Te has unido a la sala " + std::to_string(roomNumber));
-						reply.type = SimonMessage::LOGIN;
-						sock.send(cliente_sd, reply);
-					}
-					//Si la sala no admite jugadores...
-					else
-					{
-						SimonMessage reply("server", "La sala está cerrada");
-						reply.type = SimonMessage::LOGOUT;
-						sock.send(cliente_sd, reply);
-					}
+					rooms[roomDB[roomNumber]].push_back(cliente_sd);
+					SimonMessage reply("server", "Te has unido a la sala " + std::to_string(roomNumber));
+					reply.type = SimonMessage::LOGIN;
+					sock.send(cliente_sd, reply);
 				}
-				//Si la sala no existe...
+				//Si la sala no existe o no admite jugadores...
 				else
 				{
-					SimonMessage reply("server", "La sala no existe");
+					SimonMessage reply("server", "La sala no existe o no admite jugadores");
 					reply.type = SimonMessage::LOGOUT;
 					sock.send(cliente_sd, reply);
 				}
-			}
-			//El cliente no ha especificado nada (entra a una sala aleatoria si hay abiertas y si no la crea)
-			else
-			{
-				if (openRooms.size() == 0)
-				{
-					std::thread newRoom([this]()
-										{ (*this).gameRoom(); });
-					std::thread::id roomId = newRoom.get_id();
-					newRoom.detach();
-					rooms[roomId] = clientVector();
-					openRooms.push_back(roomId);
-					roomDB[roomCount] = roomId;
-					roomCount++;
-				}
-				int r = rand() % openRooms.size();
-				auto roomId = roomDB[r];
-				rooms[roomId].push_back(cliente_sd);
-				SimonMessage reply("server", "Te has unido a la sala " + std::to_string(r));
-				reply.type = SimonMessage::LOGIN;
-				sock.send(cliente_sd, reply);
 			}
 			std::cout << msg.nick << " se ha conectado.\n";
 		}
@@ -115,6 +82,7 @@ void SimonServer::gameRoom(){
 	int readyClients = 0;
 	std::map<int, bool> genteReady;
 
+	//Mientras no haya más de un jugador o no estén todos listos...
 	while(room->size() < 2 || readyClients < room->size()){
 		for (int cliente_sd : *room){
 			if (genteReady.count(cliente_sd) == 0)
@@ -138,7 +106,7 @@ void SimonServer::gameRoom(){
 
 	//Cerramos la sala
 	std::cout << "EVERYONE IS HERE\n";
-	openRooms.erase(std::find(openRooms.begin(), openRooms.end(), id));
+	openRooms[id] = false;
 
 	int messagesReceived;
 	std::string sequence = "";
@@ -196,19 +164,22 @@ void SimonServer::gameRoom(){
 		sequenceSize++;
 	}
 
+	//Si queda gente en la sala les decimos que han ganado y les sacamos de la sala
 	SimonMessage winMessage("server", "WIN");
 	winMessage.type = SimonMessage::MessageType::LOGOUT;
 	for(int cliente_sd: *room){
 		sock.send(cliente_sd, winMessage);
+		room->erase(std::find(room->begin(), room->end(), cliente_sd));
 	}
 
-	openRooms.push_back(id);
+	//Volvemos a abrir la sala
+	openRooms[id] = true;
 }
 
 int main(int argc, char **argv)
 {
+	//Creación del servidor
 	SimonServer es(argv[1], argv[2]);
-
 	es.hub();
 
 	return 0;

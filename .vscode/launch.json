@@ -43,15 +43,15 @@
             ]
         },
         {
-            "name": "Jose 8888 0",
+            "name": "Pepe 8888 create",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/sc",
             "args": [
                 "localhost",
                 "8888",
-                "jose",
-                "0"
+                "pepe",
+                "create"
             ],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

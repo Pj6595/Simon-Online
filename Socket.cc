@@ -34,8 +34,8 @@ int Socket::recv(int cliente_sd, Serializable &obj, int flags)
     char buffer[MAX_MESSAGE_SIZE];
 
     ssize_t bytes = ::recv(cliente_sd, buffer, MAX_MESSAGE_SIZE, flags);
-
-    if ( bytes <= 0 )
+    
+	if ( bytes <= 0 )
     {
         return -1;
     }

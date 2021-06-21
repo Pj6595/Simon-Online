@@ -1,6 +1,5 @@
 #include "SimonClient.h"
 #include "SimonMessage.h"
-#include <thread>
 #include <iostream>
 
 #include <sys/types.h>
@@ -13,12 +12,18 @@ SimonClient::SimonClient(char *s, char *p, char *n, char* message, char* room) :
 	sock.bind();
 	sock.connect();
 	sd = sock.get_sd();
-	
-	if(message == NULL) argMessage = "";
-	else argMessage = std::string(message);
 
-	if(room == NULL) argRoom = "";
-	else argRoom = std::string(room);
+	//Procesamos la acción que quiere realizar el usuario
+	if ((n != NULL) && (std::string(message) == "create" || (std::string(message) == "join" && room != NULL)))
+	{
+		argMessage = std::string(message);
+		if(room != NULL) argRoom = std::string(room);
+	}
+	else{
+		std::cout << YELLOW << "Comandos no identificados. Para jugar, escribe " << BLUE << "[tu nombre] create" << YELLOW <<
+		" para crear una sala o " << BLUE << "[tu nombre] join [nº de sala]" << YELLOW << " para unirte a una sala que esté abierta\n";
+		exit(0);
+	}
 
 	quit = false;
 	state = GameState::notReady;
@@ -80,6 +85,7 @@ void SimonClient::runGame(){
 	writeText = IMG_LoadTexture(renderer, "assets/RepiteText.png");
 	textures.push_back(writeText);
 
+	//Establecemos la posición y el tamaño de cada textura y lo guardamos en un diccionario
 	SDL_Rect texr;
 	texr.w = 150;
 	texr.h = 150;
@@ -118,9 +124,8 @@ void SimonClient::runGame(){
 	renderDB[titleText] = true;
 	renderDB[readyText] = true;
 
+	//Bucle principal del juego
 	login();
-	bool quit = false;
-	// main loop
 	while (!quit)
 	{
 		handleEvents();
@@ -128,27 +133,30 @@ void SimonClient::runGame(){
 		render();
 		net_thread();
 	}
+
 	for (auto tex : textures)
 		SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
 
+	close(sd);
 	exit(0);
 }
 
 void SimonClient::handleEvents(){
-	// event handling
+	//Procesado de eventos de teclado
 	SDL_Event e;
 	while (SDL_PollEvent(&e))
 	{
+		//Si pulsamos el botón de cerrar la ventana o escape salimos de la aplicación
 		if (e.type == SDL_QUIT) {
-			quitGame();
-			exit(0);
+			quit = true;
 		}
 		switch(e.key.keysym.sym){
 			case SDLK_ESCAPE:
-				quitGame();
+				quit = true;
 				break;
+			//Al pulsar intro indicamos que estamos listos
 			case SDLK_RETURN:
 				if(state == GameState::notReady){
 					state = GameState::ready;
@@ -157,6 +165,7 @@ void SimonClient::handleEvents(){
 					ready();
 				}
 				break;
+			//W A S y D para introducir la secuencia
 			case SDLK_w:
 				if (e.type == SDL_KEYDOWN)
 				{
@@ -200,6 +209,8 @@ void SimonClient::handleEvents(){
 
 void SimonClient::update(){
 	switch(state){
+		/*Si el estado del juego es writingsequence comprobamos si la secuencia introducida es del tamaño correcto
+		o aún nos queda escribir algo. Si es del tamaño adecuado la enviamos y pasamos al estado awaitingsequence.*/
 		case GameState::writingSequence:
 			if(answerSeq.size() == serverSeq.size()){
 				state = GameState::awaitingSequence;
@@ -211,6 +222,7 @@ void SimonClient::update(){
 				renderDB[waitPlayerText] = true;
 			}
 			break;
+		//Si el estado es watchingsequence actualizamos la secuencia que haya mandado el servidor hasta mostrarla toda
 		case GameState::watchingSequence:
 			if (showingSequencePosition < (int)serverSeq.size())
 			{
@@ -219,6 +231,7 @@ void SimonClient::update(){
 				activeSequenceButton = textures[current * 2 + 1];
 				renderDB[activeSequenceButton] = true;
 			}
+			//Si hemos terminado de mostrar la secuencia pasamos al estado writingSequence
 			else{
 				state = GameState::writingSequence;
 				showingSequencePosition = -1;
@@ -231,18 +244,17 @@ void SimonClient::update(){
 }
 
 void SimonClient::render(){
-	// clear the screen
+	//Limpiamos la pantalla y renderizamos un nuevo frame
 	SDL_RenderClear(renderer);
-	// copy the texture to the rendering context
 	for (auto tex: textures)
 		if(renderDB.count(tex) && renderDB[tex]) SDL_RenderCopy(renderer, tex, NULL, &texturesDB[tex]);
-	// flip the backbuffer
-	// this means that everything that we prepared behind the screens is actually shown
 	SDL_RenderPresent(renderer);
 	if(state == GameState::watchingSequence && activeSequenceButton >= 0){
 		SDL_Delay(500);
 		renderDB[activeSequenceButton] = false;
 		SDL_RenderClear(renderer);
+		/*Si se repite el mismo color dos veces seguidas re-renderizamos con el color apagado 
+		para que se note que se ha mostrado dos veces*/
 		for (auto tex : textures)
 			if (renderDB.count(tex) && renderDB[tex])
 				SDL_RenderCopy(renderer, tex, NULL, &texturesDB[tex]);
@@ -251,6 +263,7 @@ void SimonClient::render(){
 	}
 }
 
+//Indicamos al servidor que nos hemos unido y si queremos crear/unirnos a una sala
 void SimonClient::login()
 {
 	std::string msg;
@@ -264,6 +277,7 @@ void SimonClient::login()
 	std::cout << BLUE << "MENSAJE LOGIN ENVIADO AL SERVIDOR\n" << RESET;
 }
 
+//Indicamos al servidor que nos hemos ido
 void SimonClient::logout()
 {
 	std::string msg;
@@ -275,6 +289,7 @@ void SimonClient::logout()
 	std::cout << "MENSAJE LOGOUT ENVIADO AL SERVIDOR\n";
 }
 
+//Indicamos al servidor que estamos listos para empezar
 void SimonClient::ready(){
 	std::string msg;
 
@@ -285,6 +300,7 @@ void SimonClient::ready(){
 	std::cout << BLUE << "MENSAJE READY ENVIADO AL SERVIDOR\n" << RESET;
 }
 
+//Método para jugar por input de consola (no se utiliza en ningún sitio)
 void SimonClient::input_thread()
 {
 	while (!quit)
@@ -319,8 +335,10 @@ void SimonClient::input_thread()
 
 void SimonClient::net_thread()
 {
-	//Recibir Mensajes de red
+	//Recibir mensajes de red
 	SimonMessage msg;
+
+	//Si no se recibe ningún mensaje comprobamos si es porque no se ha mandado nada o porque el cliente se ha desconectado
 	errno = 0;
 	if (sock.recv(sd, msg, MSG_DONTWAIT) == -1)
 	{
@@ -329,43 +347,53 @@ void SimonClient::net_thread()
 		}
 			
 		std::cout << RED << "MURIÓ EL SERVIDOR\n" << RESET;
-		quitGame();
-		exit(0);
+		quit = true;
 	}
 	else std::cout << BLUE << "MENSAJE RECIBIDO DEL SERVIDOR\n" << RESET;
 
-	//Si el mensaje es login o logout mostramos un mensaje informativo
 	switch(msg.type){
-		case SimonMessage::LOGOUT:
-			if(msg.sequence == "WIN"){
-				std::cout << GREEN << "A winner is you\n" << RESET;
-				renderDB[waitPlayerText] = false;
-				renderDB[winText] = true;
-			} 
-			else {
-				std::cout << RED << "Has perdido y ahora morirás por ello\n" << RESET;
-				renderDB[waitPlayerText] = false;
-				renderDB[loseText] = true;
-			} 
-			quit = true;
-			break;
-		case SimonMessage::LOGIN:
-			std::cout << YELLOW << msg.sequence << "\n" << RESET;
-			break;
-		case SimonMessage::SEQUENCE:
+	//Si el mensaje es login o logout mostramos un mensaje informativo
+	case SimonMessage::LOGOUT:
+		if (msg.sequence == "WIN")
+		{
+			std::cout << GREEN << "A winner is you\n"
+					  << RESET;
 			renderDB[waitPlayerText] = false;
-			renderDB[rememberText] = true;
-			renderDB[redButton] = true;
-			renderDB[blueButton] = true;
-			renderDB[greenButton] = true;
-			renderDB[yellowButton] = true;
-			std::cout << YELLOW << "Tu secuencia es: " << msg.sequence << "\n" << RESET;
-			serverSeq = msg.sequence;
-			state = GameState::watchingSequence;
-			break;
-		case SimonMessage::READY:
-			std::cout << YELLOW << "Enhorabuena hacker!! Espera instrucciones.\n" << RESET;
-			break;
+			renderDB[winText] = true;
+		}
+		else
+		{
+			std::cout << RED << msg.sequence << '\n' << RESET;
+			renderDB[waitPlayerText] = false;
+			renderDB[loseText] = true;
+		}
+		quit = true;
+		break;
+
+	case SimonMessage::LOGIN:
+		std::cout << YELLOW << msg.sequence << "\n"
+				  << RESET;
+		break;
+
+	//Si el mensaje es de tipo sequence cambiamos el estado del juego para que muestre la secuencia por pantalla
+	case SimonMessage::SEQUENCE:
+		renderDB[waitPlayerText] = false;
+		renderDB[rememberText] = true;
+		renderDB[redButton] = true;
+		renderDB[blueButton] = true;
+		renderDB[greenButton] = true;
+		renderDB[yellowButton] = true;
+		std::cout << YELLOW << "Tu secuencia es: " << msg.sequence << "\n"
+				  << RESET;
+		serverSeq = msg.sequence;
+		state = GameState::watchingSequence;
+		break;
+	
+	//Si el mensaje es de tipo ready significa que hemos superado la ronda
+	case SimonMessage::READY:
+		std::cout << YELLOW << "Enhorabuena hacker!! Espera instrucciones.\n"
+				  << RESET;
+		break;
 	}
 }
 
@@ -373,7 +401,6 @@ int main(int argc, char **argv)
 {
 	//Creación del cliente
 	SimonClient ec(argv[1], argv[2], argv[3], argv[4], argv[5]);
-
 	ec.runGame();
 
 	return 0;
