@@ -134,11 +134,16 @@ void SimonClient::runGame(){
 		net_thread();
 	}
 
+	render();
+	std::cout << BLUE << "PULSA INTRO PARA SALIR\n" << RESET;
+
+	std::getline(std::cin, answerSeq);
+
 	for (auto tex : textures)
 		SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
-	
+
 	exit(0);
 }
 
