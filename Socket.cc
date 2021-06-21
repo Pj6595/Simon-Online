@@ -29,11 +29,11 @@ Socket::Socket(const char * address, const char * port):sd(-1)
     sa_len = result->ai_addrlen;
 }
 
-int Socket::recv(int cliente_sd, Serializable &obj)
+int Socket::recv(int cliente_sd, Serializable &obj, int flags)
 {
     char buffer[MAX_MESSAGE_SIZE];
 
-    ssize_t bytes = ::recv(cliente_sd, buffer, MAX_MESSAGE_SIZE, 0);
+    ssize_t bytes = ::recv(cliente_sd, buffer, MAX_MESSAGE_SIZE, flags);
 
     if ( bytes <= 0 )
     {

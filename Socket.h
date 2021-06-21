@@ -80,7 +80,7 @@ public:
      *
      *    @return 0 en caso de éxito o -1 si error (cerrar conexión)
      */
-    int recv(int cliente_sd, Serializable &obj);
+    int recv(int cliente_sd, Serializable &obj, int flags = 0);
 
     int listen(int max){
         return ::listen(sd, max);

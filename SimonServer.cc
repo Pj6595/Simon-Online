@@ -157,7 +157,7 @@ void SimonServer::gameRoom(){
 		{
 			if(sock.send(csd, msg) == -1)
 			std::cout << "ERROR MANDANDO MENSAJE A " << csd << '\n';
-			std::cout << "SECUENCIA ENVIADA A CLIENTE\n";
+			std::cout << "SECUENCIA ENVIADA A " << csd << "\n";
 		}
 
 		//Esperamos a que todos los clientes manden su secuencia
