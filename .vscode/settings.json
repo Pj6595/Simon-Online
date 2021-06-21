@@ -53,6 +53,8 @@
         "compare": "cpp",
         "concepts": "cpp",
         "ranges": "cpp",
-        "stop_token": "cpp"
+        "stop_token": "cpp",
+        "condition_variable": "cpp",
+        "mutex": "cpp"
     }
 }

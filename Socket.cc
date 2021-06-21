@@ -2,10 +2,10 @@
 
 #include "Serializable.h"
 #include "Socket.h"
+#include <unistd.h>
 
 Socket::Socket(const char * address, const char * port):sd(-1)
 {
-    struct addrinfo *result;
 	struct addrinfo hints;
 
 	memset((void *)&hints, 0, sizeof(struct addrinfo));
@@ -27,6 +27,11 @@ Socket::Socket(const char * address, const char * port):sd(-1)
 
 	sa = *result->ai_addr;
     sa_len = result->ai_addrlen;
+}
+
+Socket::~Socket(){
+	close(sd);
+	freeaddrinfo(result);
 }
 
 int Socket::recv(int cliente_sd, Serializable &obj, int flags)

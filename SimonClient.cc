@@ -138,8 +138,7 @@ void SimonClient::runGame(){
 		SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(win);
-
-	close(sd);
+	
 	exit(0);
 }
 

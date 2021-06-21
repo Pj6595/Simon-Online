@@ -94,6 +94,7 @@ void SimonServer::gameRoom(){
 			{
 				//El cliente se ha ido
 				room->erase(std::find(room->begin(), room->end(), cliente_sd));
+				close(cliente_sd);
 			}
 			else if(msg.type == SimonMessage::MessageType::READY){
 				//El cliente está listo
@@ -121,11 +122,12 @@ void SimonServer::gameRoom(){
 		SimonMessage msg("server", sequence);
 		msg.type = SimonMessage::MessageType::SEQUENCE;
 		msg.to_bin();
-		for (int csd : rooms[id])
+		for (int cliente_sd : rooms[id])
 		{
-			if(sock.send(csd, msg) == -1)
-			std::cout << "ERROR MANDANDO MENSAJE A " << csd << '\n';
-			std::cout << "SECUENCIA ENVIADA A " << csd << "\n";
+			if(sock.send(cliente_sd, msg) == -1){
+				std::cout << "ERROR MANDANDO MENSAJE A " << cliente_sd << '\n';
+			}
+			std::cout << "SECUENCIA ENVIADA A " << cliente_sd << "\n";
 		}
 
 		//Esperamos a que todos los clientes manden su secuencia
@@ -139,6 +141,7 @@ void SimonServer::gameRoom(){
 				{
 					//El cliente se ha ido
 					room->erase(std::find(room->begin(), room->end(), cliente_sd));
+					close(cliente_sd);
 				}
 				else if (msg.type == SimonMessage::MessageType::SEQUENCE)
 				{
@@ -170,6 +173,7 @@ void SimonServer::gameRoom(){
 	for(int cliente_sd: *room){
 		sock.send(cliente_sd, winMessage);
 		room->erase(std::find(room->begin(), room->end(), cliente_sd));
+		close(cliente_sd);
 	}
 
 	//Volvemos a abrir la sala
