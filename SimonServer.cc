@@ -119,7 +119,7 @@ void SimonServer::gameRoom(){
 		sequence += std::to_string(rand() % 4);
 		
 		//Creamos el mensaje con la secuencia y lo enviamos a los clientes
-		SimonMessage msg("server", sequence);
+		SimonMessage msg(std::to_string(room->size() - 1), sequence);
 		msg.type = SimonMessage::MessageType::SEQUENCE;
 		msg.to_bin();
 		for (int cliente_sd : rooms[id])

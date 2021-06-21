@@ -376,6 +376,7 @@ void SimonClient::net_thread()
 
 	//Si el mensaje es de tipo sequence cambiamos el estado del juego para que muestre la secuencia por pantalla
 	case SimonMessage::SEQUENCE:
+		std::cout << YELLOW << "QUEDAN " << msg.nick << " RIVALES\n" << RESET;
 		renderDB[waitPlayerText] = false;
 		renderDB[rememberText] = true;
 		renderDB[redButton] = true;
