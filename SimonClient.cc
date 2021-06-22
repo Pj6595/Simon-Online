@@ -162,9 +162,9 @@ void SimonClient::runGame(){
 	while (!quit)
 	{
 		handleEvents();
+		net_thread();
 		update();
 		render();
-		net_thread();
 	}
 
 	render();

@@ -75,110 +75,123 @@ void SimonServer::hub()
 }
 
 void SimonServer::gameRoom(){
-	auto id = std::this_thread::get_id();
+	while(true){
+		auto id = std::this_thread::get_id();
 
-	clientVector* room = &rooms[id];
-	int sequenceSize = 1;
-	int readyClients = 0;
-	std::map<int, bool> genteReady;
+		clientVector *room = &rooms[id];
+		int sequenceSize = 1;
+		int readyClients = 0;
+		std::map<int, bool> genteReady;
 
-	//Mientras no haya más de un jugador o no estén todos listos...
-	while(room->size() < 2 || readyClients < room->size()){
-		for (int cliente_sd : *room){
-			if (genteReady.count(cliente_sd) == 0)
-				genteReady[cliente_sd] = false;
-			else if(genteReady[cliente_sd]) continue;
-			SimonMessage msg;
-			std::cout << "ESPERANDO MENSAJE DE " << cliente_sd << "\n";
-			if (sock.recv(cliente_sd, msg) == -1)
-			{
-				//El cliente se ha ido
-				room->erase(std::find(room->begin(), room->end(), cliente_sd));
-				close(cliente_sd);
-			}
-			else if(msg.type == SimonMessage::MessageType::READY){
-				//El cliente está listo
-				genteReady[cliente_sd] = true;
-				readyClients++;
-				std::cout << "HAY " << readyClients << " READYS Y EL TAMAÑO DE LA SALA ES " << room->size() << '\n';
-			}
-		}
-	}
-
-	//Cerramos la sala
-	std::cout << "EVERYONE IS HERE\n";
-	openRooms[id] = false;
-
-	int messagesReceived;
-	std::string sequence = "";
-	//Bucle de la partida
-	while(room->size() > 1 && sequenceSize <= MAX_SEQUENCE){
-		sleep(1);
-		messagesReceived = 0;
-		genteReady.clear();
-		//Creamos la secuencia
-		sequence += std::to_string(rand() % 4);
-		
-		//Creamos el mensaje con la secuencia y lo enviamos a los clientes
-		SimonMessage msg(std::to_string(room->size() - 1), sequence);
-		msg.type = SimonMessage::MessageType::SEQUENCE;
-		msg.to_bin();
-		for (int cliente_sd : rooms[id])
+		//Mientras no haya más de un jugador o no estén todos listos...
+		while (room->size() < 2 || readyClients < room->size())
 		{
-			if(sock.send(cliente_sd, msg) == -1){
-				std::cout << "ERROR MANDANDO MENSAJE A " << cliente_sd << '\n';
-			}
-			std::cout << "SECUENCIA ENVIADA A " << cliente_sd << "\n";
-		}
-
-		//Esperamos a que todos los clientes manden su secuencia
-		while(messagesReceived < room->size()){
-			for(int cliente_sd: *room){
-				//Si el cliente ya ha mandado su mensaje seguimos
-				if(genteReady.count(cliente_sd) && genteReady[cliente_sd])
+			for (int cliente_sd : *room)
+			{
+				if (genteReady.count(cliente_sd) == 0)
+					genteReady[cliente_sd] = false;
+				else if (genteReady[cliente_sd])
 					continue;
-				
+				SimonMessage msg;
+				std::cout << "ESPERANDO MENSAJE DE " << cliente_sd << "\n";
 				if (sock.recv(cliente_sd, msg) == -1)
 				{
 					//El cliente se ha ido
 					room->erase(std::find(room->begin(), room->end(), cliente_sd));
 					close(cliente_sd);
 				}
-				else if (msg.type == SimonMessage::MessageType::SEQUENCE)
+				else if (msg.type == SimonMessage::MessageType::READY)
 				{
-					std::cout << "SECUENCIA RECIBIDA DE CLIENTE\n";
-					genteReady[cliente_sd] = true;
-					SimonMessage reply("server", "");
 					//El cliente está listo
-					if(strcmp(sequence.c_str(), msg.sequence.c_str()) == 0){
-						reply.type = SimonMessage::MessageType::READY;
-						sock.send(cliente_sd, reply);
-						messagesReceived++;
-					}
-					else{
-						reply.type = SimonMessage::MessageType::LOGOUT;
-						reply.sequence = "Has fallado y ahora morirás por ello";
-						sock.send(cliente_sd, reply);
-						room->erase(std::find(room->begin(), room->end(), cliente_sd));
-					}
-					std::cout << "HAY " << messagesReceived << " MENSAJES MANDADOS Y EL TAMAÑO DE LA SALA ES " << room->size() << '\n';
+					genteReady[cliente_sd] = true;
+					readyClients++;
+					std::cout << "HAY " << readyClients << " READYS Y EL TAMAÑO DE LA SALA ES " << room->size() << '\n';
 				}
 			}
 		}
-		sequenceSize++;
-	}
 
-	//Si queda gente en la sala les decimos que han ganado y les sacamos de la sala
-	SimonMessage winMessage("server", "WIN");
-	winMessage.type = SimonMessage::MessageType::LOGOUT;
-	for(int cliente_sd: *room){
-		sock.send(cliente_sd, winMessage);
-		room->erase(std::find(room->begin(), room->end(), cliente_sd));
-		//close(cliente_sd);
-	}
+		//Cerramos la sala
+		std::cout << "EVERYONE IS HERE\n";
+		openRooms[id] = false;
 
-	//Volvemos a abrir la sala
-	openRooms[id] = true;
+		int messagesReceived;
+		std::string sequence = "";
+		//Bucle de la partida
+		while (room->size() > 1 && sequenceSize <= MAX_SEQUENCE)
+		{
+			sleep(1);
+			messagesReceived = 0;
+			genteReady.clear();
+			//Creamos la secuencia
+			sequence += std::to_string(rand() % 4);
+
+			//Creamos el mensaje con la secuencia y lo enviamos a los clientes
+			SimonMessage msg(std::to_string(room->size() - 1), sequence);
+			msg.type = SimonMessage::MessageType::SEQUENCE;
+			msg.to_bin();
+			for (int cliente_sd : rooms[id])
+			{
+				if (sock.send(cliente_sd, msg) == -1)
+				{
+					std::cout << "ERROR MANDANDO MENSAJE A " << cliente_sd << '\n';
+				}
+				std::cout << "SECUENCIA ENVIADA A " << cliente_sd << "\n";
+			}
+
+			//Esperamos a que todos los clientes manden su secuencia
+			while (messagesReceived < room->size())
+			{
+				for (int cliente_sd : *room)
+				{
+					//Si el cliente ya ha mandado su mensaje seguimos
+					if (genteReady.count(cliente_sd) && genteReady[cliente_sd])
+						continue;
+
+					if (sock.recv(cliente_sd, msg) == -1)
+					{
+						//El cliente se ha ido
+						room->erase(std::find(room->begin(), room->end(), cliente_sd));
+						close(cliente_sd);
+					}
+					else if (msg.type == SimonMessage::MessageType::SEQUENCE)
+					{
+						std::cout << "SECUENCIA RECIBIDA DE CLIENTE\n";
+						genteReady[cliente_sd] = true;
+						SimonMessage reply("server", "");
+						//El cliente está listo
+						if (strcmp(sequence.c_str(), msg.sequence.c_str()) == 0)
+						{
+							reply.type = SimonMessage::MessageType::READY;
+							sock.send(cliente_sd, reply);
+							messagesReceived++;
+						}
+						else
+						{
+							reply.type = SimonMessage::MessageType::LOGOUT;
+							reply.sequence = "Has fallado y ahora morirás por ello";
+							sock.send(cliente_sd, reply);
+							room->erase(std::find(room->begin(), room->end(), cliente_sd));
+						}
+						std::cout << "HAY " << messagesReceived << " MENSAJES MANDADOS Y EL TAMAÑO DE LA SALA ES " << room->size() << '\n';
+					}
+				}
+			}
+			sequenceSize++;
+		}
+
+		//Si queda gente en la sala les decimos que han ganado y les sacamos de la sala
+		SimonMessage winMessage("server", "WIN");
+		winMessage.type = SimonMessage::MessageType::LOGOUT;
+		for (int cliente_sd : *room)
+		{
+			sock.send(cliente_sd, winMessage);
+			room->erase(std::find(room->begin(), room->end(), cliente_sd));
+			//close(cliente_sd);
+		}
+
+		//Volvemos a abrir la sala
+		openRooms[id] = true;
+	}
 }
 
 int main(int argc, char **argv)
