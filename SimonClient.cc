@@ -167,7 +167,6 @@ void SimonClient::runGame(){
 		render();
 	}
 
-	render();
 	std::cout << BLUE << "PULSA INTRO PARA SALIR\n" << RESET;
 
 	std::getline(std::cin, answerSeq);
@@ -372,84 +371,81 @@ void SimonClient::input_thread()
 
 void SimonClient::net_thread()
 {
-	if(state != gameOver){
-		//Recibir mensajes de red
-		SimonMessage msg;
+	//Recibir mensajes de red
+	SimonMessage msg;
 
-		//Si no se recibe ningún mensaje comprobamos si es porque no se ha mandado nada o porque el cliente se ha desconectado
-		errno = 0;
-		if (sock.recv(sd, msg, MSG_DONTWAIT) == -1)
+	//Si no se recibe ningún mensaje comprobamos si es porque no se ha mandado nada o porque el cliente se ha desconectado
+	errno = 0;
+	if (sock.recv(sd, msg, MSG_DONTWAIT) == -1)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK){
+			return;
+		}
+			
+		std::cout << RED << "MURIÓ EL SERVIDOR\n" << RESET;
+		quit = true;
+	}
+	else std::cout << BLUE << "MENSAJE RECIBIDO DEL SERVIDOR\n" << RESET;
+
+	std::string text;
+	switch(msg.type){
+	//Si el mensaje es login o logout mostramos un mensaje informativo
+	case SimonMessage::LOGOUT:
+		if (msg.sequence == "WIN")
 		{
-			if (errno == EAGAIN || errno == EWOULDBLOCK){
-				return;
-			}
-				
-			std::cout << RED << "MURIÓ EL SERVIDOR\n" << RESET;
-			quit = true;
-		}
-		else std::cout << BLUE << "MENSAJE RECIBIDO DEL SERVIDOR\n" << RESET;
-
-		std::string text;
-		switch(msg.type){
-		//Si el mensaje es login o logout mostramos un mensaje informativo
-		case SimonMessage::LOGOUT:
-			if (msg.sequence == "WIN")
-			{
-				std::cout << GREEN << "A winner is you\n"
-						<< RESET;
-				renderDB[waitPlayerText] = false;
-				renderDB[winText] = true;
-			}
-			else
-			{
-				std::cout << RED << msg.sequence << '\n' << RESET;
-				renderDB[waitPlayerText] = false;
-				renderDB[loseText] = true;
-			}
-			state == gameOver;
-			quit = true;
-			break;
-
-		case SimonMessage::LOGIN:
-			std::cout << YELLOW << msg.sequence << "\n"
+			std::cout << GREEN << "A winner is you\n"
 					<< RESET;
-			break;
-
-		//Si el mensaje es de tipo sequence cambiamos el estado del juego para que muestre la secuencia por pantalla
-		case SimonMessage::SEQUENCE:
-			std::cout << YELLOW << "QUEDAN " << msg.nick << " RIVALES\n" << RESET;
-
-			if(stoi(msg.nick) == 1) text = "QUEDA 1 RIVAL";
-			else text = "QUEDAN " + msg.nick + " RIVALES";
-
-			//si ya teníamos textura la quitamos del vector para poner la nueva
-			if(renderDB.count(rivalsText) != 0) textures.pop_back();
-
-			rivalsRect.w = 20 * text.size();
-			rivalsSurface = TTF_RenderText_Solid(textFont, text.c_str(), white);
-			rivalsText = SDL_CreateTextureFromSurface(renderer, rivalsSurface);
-			textures.push_back(rivalsText);
-			texturesDB[rivalsText] = rivalsRect;
-			renderDB[rivalsText] = true;
-
 			renderDB[waitPlayerText] = false;
-			renderDB[rememberText] = true;
-			renderDB[redButton] = true;
-			renderDB[blueButton] = true;
-			renderDB[greenButton] = true;
-			renderDB[yellowButton] = true;
-			std::cout << YELLOW << "Tu secuencia es: " << msg.sequence << "\n"
-					<< RESET;
-			serverSeq = msg.sequence;
-			state = GameState::watchingSequence;
-			break;
-		
-		//Si el mensaje es de tipo ready significa que hemos superado la ronda
-		case SimonMessage::READY:
-			std::cout << YELLOW << "Enhorabuena hacker!! Espera instrucciones.\n"
-					<< RESET;
-			break;
+			renderDB[winText] = true;
 		}
+		else
+		{
+			std::cout << RED << msg.sequence << '\n' << RESET;
+			renderDB[waitPlayerText] = false;
+			renderDB[loseText] = true;
+		}
+		quit = true;
+		break;
+
+	case SimonMessage::LOGIN:
+		std::cout << YELLOW << msg.sequence << "\n"
+				<< RESET;
+		break;
+
+	//Si el mensaje es de tipo sequence cambiamos el estado del juego para que muestre la secuencia por pantalla
+	case SimonMessage::SEQUENCE:
+		std::cout << YELLOW << "QUEDAN " << msg.nick << " RIVALES\n" << RESET;
+
+		if(stoi(msg.nick) == 1) text = "QUEDA 1 RIVAL";
+		else text = "QUEDAN " + msg.nick + " RIVALES";
+
+		//si ya teníamos textura la quitamos del vector para poner la nueva
+		if(renderDB.count(rivalsText) != 0) textures.pop_back();
+
+		rivalsRect.w = 20 * text.size();
+		rivalsSurface = TTF_RenderText_Solid(textFont, text.c_str(), white);
+		rivalsText = SDL_CreateTextureFromSurface(renderer, rivalsSurface);
+		textures.push_back(rivalsText);
+		texturesDB[rivalsText] = rivalsRect;
+		renderDB[rivalsText] = true;
+
+		renderDB[waitPlayerText] = false;
+		renderDB[rememberText] = true;
+		renderDB[redButton] = true;
+		renderDB[blueButton] = true;
+		renderDB[greenButton] = true;
+		renderDB[yellowButton] = true;
+		std::cout << YELLOW << "Tu secuencia es: " << msg.sequence << "\n"
+				<< RESET;
+		serverSeq = msg.sequence;
+		state = GameState::watchingSequence;
+		break;
+	
+	//Si el mensaje es de tipo ready significa que hemos superado la ronda
+	case SimonMessage::READY:
+		std::cout << YELLOW << "Enhorabuena hacker!! Espera instrucciones.\n"
+				<< RESET;
+		break;
 	}
 }
 

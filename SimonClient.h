@@ -18,8 +18,7 @@ enum GameState
      ready,
      awaitingSequence,
      watchingSequence,
-     writingSequence,
-     gameOver
+     writingSequence
 };
 
 class SimonClient
