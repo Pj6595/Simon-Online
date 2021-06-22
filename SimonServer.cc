@@ -179,6 +179,7 @@ void SimonServer::gameRoom(){
 			sequenceSize++;
 		}
 
+		sleep(1);
 		//Si queda gente en la sala les decimos que han ganado y les sacamos de la sala
 		SimonMessage winMessage("server", "WIN");
 		winMessage.type = SimonMessage::MessageType::LOGOUT;
