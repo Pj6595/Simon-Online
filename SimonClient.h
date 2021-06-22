@@ -4,6 +4,7 @@
 #include <SDL2/SDL_image.h>
 #include <vector>
 #include <map>
+#include <SDL2/SDL_ttf.h>
 
 #define RED "\033[1;31m"
 #define GREEN "\033[1;32m"
@@ -17,7 +18,8 @@ enum GameState
      ready,
      awaitingSequence,
      watchingSequence,
-     writingSequence
+     writingSequence,
+     gameOver
 };
 
 class SimonClient
@@ -73,7 +75,8 @@ private:
                  *winText = nullptr, *loseText = nullptr,
                  *waitPlayerText = nullptr, *waitServerText = nullptr,
                  *readyText = nullptr, *titleText = nullptr,
-                 *rememberText = nullptr, *writeText = nullptr;
+                 *rememberText = nullptr, *writeText = nullptr,
+                 *rivalsText = nullptr, *nickText = nullptr;
      std::vector<SDL_Texture *> textures;
 
      //Variable que indica el estado actual del juego
@@ -86,6 +89,11 @@ private:
      //Posición de la secuencia que se está mostrando por pantalla y textura del botón activo
      int showingSequencePosition = -1;
      SDL_Texture* activeSequenceButton = nullptr;
+
+     TTF_Font* textFont = nullptr;
+     SDL_Color white = {255,255,255};
+     SDL_Surface* rivalsSurface = nullptr;
+     SDL_Rect rivalsRect;
 
      bool quit;
 };

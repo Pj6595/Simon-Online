@@ -113,6 +113,7 @@ void SimonServer::gameRoom(){
 	std::string sequence = "";
 	//Bucle de la partida
 	while(room->size() > 1 && sequenceSize <= MAX_SEQUENCE){
+		sleep(1);
 		messagesReceived = 0;
 		genteReady.clear();
 		//Creamos la secuencia
@@ -173,7 +174,7 @@ void SimonServer::gameRoom(){
 	for(int cliente_sd: *room){
 		sock.send(cliente_sd, winMessage);
 		room->erase(std::find(room->begin(), room->end(), cliente_sd));
-		close(cliente_sd);
+		//close(cliente_sd);
 	}
 
 	//Volvemos a abrir la sala

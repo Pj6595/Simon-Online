@@ -40,6 +40,22 @@ void SimonClient::runGame(){
 						   SDL_WINDOWPOS_CENTERED, SimonClient::WINDOW_WIDTH, SimonClient::WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
 	renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 
+	 //Initialize SDL_ttf
+	if( TTF_Init() == -1 )
+	{
+		printf( "SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError() );
+	}
+
+	textFont = TTF_OpenFont("assets/Audiowide.ttf", 24);
+
+	SDL_Surface* surfaceMessage = TTF_RenderText_Solid(textFont, nick.c_str(), white);
+
+	nickText = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+	
+	rivalsSurface = TTF_RenderText_Solid(textFont, "Quedan 99 rivales", white); 
+
+	rivalsText = SDL_CreateTextureFromSurface(renderer, rivalsSurface);
+
 	//Carga de las texturas
 	redButton = IMG_LoadTexture(renderer, "assets/Rojo.png");
 	textures.push_back(redButton);
@@ -85,6 +101,9 @@ void SimonClient::runGame(){
 	writeText = IMG_LoadTexture(renderer, "assets/RepiteText.png");
 	textures.push_back(writeText);
 
+	textures.push_back(nickText);
+	//textures.push_back(rivalsText);
+
 	//Establecemos la posición y el tamaño de cada textura y lo guardamos en un diccionario
 	SDL_Rect texr;
 	texr.w = 150;
@@ -121,8 +140,22 @@ void SimonClient::runGame(){
 	texr.x = WINDOW_WIDTH / 2 - texr.w / 2;
 	texturesDB[titleText] = texr;
 
+	texr.h = 30;
+	texr.w = 20 * nick.size();
+	texr.x = WINDOW_WIDTH - 20 - texr.w;
+	texr.y = WINDOW_HEIGHT /30;
+	texturesDB[nickText] = texr;
+
+	texr.h = 30;
+	texr.x = 20;
+	texr.y = WINDOW_HEIGHT /30;
+	texturesDB[rivalsText] = texr;
+	rivalsRect = texr;
+
 	renderDB[titleText] = true;
 	renderDB[readyText] = true;
+
+	renderDB[nickText] = true;
 
 	//Bucle principal del juego
 	login();
@@ -145,7 +178,7 @@ void SimonClient::runGame(){
 	SDL_DestroyWindow(win);
 
 	exit(0);
-}
+	}
 
 void SimonClient::handleEvents(){
 	//Procesado de eventos de teclado
@@ -339,66 +372,84 @@ void SimonClient::input_thread()
 
 void SimonClient::net_thread()
 {
-	//Recibir mensajes de red
-	SimonMessage msg;
+	if(state != gameOver){
+		//Recibir mensajes de red
+		SimonMessage msg;
 
-	//Si no se recibe ningún mensaje comprobamos si es porque no se ha mandado nada o porque el cliente se ha desconectado
-	errno = 0;
-	if (sock.recv(sd, msg, MSG_DONTWAIT) == -1)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK){
-			return;
-		}
-			
-		std::cout << RED << "MURIÓ EL SERVIDOR\n" << RESET;
-		quit = true;
-	}
-	else std::cout << BLUE << "MENSAJE RECIBIDO DEL SERVIDOR\n" << RESET;
-
-	switch(msg.type){
-	//Si el mensaje es login o logout mostramos un mensaje informativo
-	case SimonMessage::LOGOUT:
-		if (msg.sequence == "WIN")
+		//Si no se recibe ningún mensaje comprobamos si es porque no se ha mandado nada o porque el cliente se ha desconectado
+		errno = 0;
+		if (sock.recv(sd, msg, MSG_DONTWAIT) == -1)
 		{
-			std::cout << GREEN << "A winner is you\n"
-					  << RESET;
-			renderDB[waitPlayerText] = false;
-			renderDB[winText] = true;
+			if (errno == EAGAIN || errno == EWOULDBLOCK){
+				return;
+			}
+				
+			std::cout << RED << "MURIÓ EL SERVIDOR\n" << RESET;
+			quit = true;
 		}
-		else
-		{
-			std::cout << RED << msg.sequence << '\n' << RESET;
+		else std::cout << BLUE << "MENSAJE RECIBIDO DEL SERVIDOR\n" << RESET;
+
+		std::string text;
+		switch(msg.type){
+		//Si el mensaje es login o logout mostramos un mensaje informativo
+		case SimonMessage::LOGOUT:
+			if (msg.sequence == "WIN")
+			{
+				std::cout << GREEN << "A winner is you\n"
+						<< RESET;
+				renderDB[waitPlayerText] = false;
+				renderDB[winText] = true;
+			}
+			else
+			{
+				std::cout << RED << msg.sequence << '\n' << RESET;
+				renderDB[waitPlayerText] = false;
+				renderDB[loseText] = true;
+			}
+			state == gameOver;
+			quit = true;
+			break;
+
+		case SimonMessage::LOGIN:
+			std::cout << YELLOW << msg.sequence << "\n"
+					<< RESET;
+			break;
+
+		//Si el mensaje es de tipo sequence cambiamos el estado del juego para que muestre la secuencia por pantalla
+		case SimonMessage::SEQUENCE:
+			std::cout << YELLOW << "QUEDAN " << msg.nick << " RIVALES\n" << RESET;
+
+			if(stoi(msg.nick) == 1) text = "QUEDA 1 RIVAL";
+			else text = "QUEDAN " + msg.nick + " RIVALES";
+
+			//si ya teníamos textura la quitamos del vector para poner la nueva
+			if(renderDB.count(rivalsText) != 0) textures.pop_back();
+
+			rivalsRect.w = 20 * text.size();
+			rivalsSurface = TTF_RenderText_Solid(textFont, text.c_str(), white);
+			rivalsText = SDL_CreateTextureFromSurface(renderer, rivalsSurface);
+			textures.push_back(rivalsText);
+			texturesDB[rivalsText] = rivalsRect;
+			renderDB[rivalsText] = true;
+
 			renderDB[waitPlayerText] = false;
-			renderDB[loseText] = true;
+			renderDB[rememberText] = true;
+			renderDB[redButton] = true;
+			renderDB[blueButton] = true;
+			renderDB[greenButton] = true;
+			renderDB[yellowButton] = true;
+			std::cout << YELLOW << "Tu secuencia es: " << msg.sequence << "\n"
+					<< RESET;
+			serverSeq = msg.sequence;
+			state = GameState::watchingSequence;
+			break;
+		
+		//Si el mensaje es de tipo ready significa que hemos superado la ronda
+		case SimonMessage::READY:
+			std::cout << YELLOW << "Enhorabuena hacker!! Espera instrucciones.\n"
+					<< RESET;
+			break;
 		}
-		quit = true;
-		break;
-
-	case SimonMessage::LOGIN:
-		std::cout << YELLOW << msg.sequence << "\n"
-				  << RESET;
-		break;
-
-	//Si el mensaje es de tipo sequence cambiamos el estado del juego para que muestre la secuencia por pantalla
-	case SimonMessage::SEQUENCE:
-		std::cout << YELLOW << "QUEDAN " << msg.nick << " RIVALES\n" << RESET;
-		renderDB[waitPlayerText] = false;
-		renderDB[rememberText] = true;
-		renderDB[redButton] = true;
-		renderDB[blueButton] = true;
-		renderDB[greenButton] = true;
-		renderDB[yellowButton] = true;
-		std::cout << YELLOW << "Tu secuencia es: " << msg.sequence << "\n"
-				  << RESET;
-		serverSeq = msg.sequence;
-		state = GameState::watchingSequence;
-		break;
-	
-	//Si el mensaje es de tipo ready significa que hemos superado la ronda
-	case SimonMessage::READY:
-		std::cout << YELLOW << "Enhorabuena hacker!! Espera instrucciones.\n"
-				  << RESET;
-		break;
 	}
 }
 

@@ -2,7 +2,7 @@ CC=g++
 CFLAGS=-g -I.
 DEPS = SimonClient.h SimonServer.h SimonMessage.h Socket.h
 OBJ = SimonMessage.o Socket.o
-LIBS=-lpthread -lSDL2 -lSDL2main -lSDL2_image
+LIBS=-lpthread -lSDL2 -lSDL2main -lSDL2_image -lSDL2_ttf
 
 %.o: %.cc $(DEPS)
 	$(CC) -g -c -o $@ $< $(CFLAGS)
